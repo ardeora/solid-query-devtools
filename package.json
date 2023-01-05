@@ -1,18 +1,8 @@
 {
   "version": "0.0.0",
-  "name": "{{name_of_lib}}",
-  "description": "{{desc_of_lib}}",
+  "name": "solid-query-devtools",
   "license": "MIT",
-  "author": "{{me}}",
   "contributors": [],
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/{{me}}/{{name_of_lib}}.git"
-  },
-  "homepage": "https://github.com/{{me}}/{{name_of_lib}}#readme",
-  "bugs": {
-    "url": "https://github.com/{{me}}/{{name_of_lib}}/issues"
-  },
   "private": false,
   "sideEffects": false,
   "type": "module",
@@ -47,19 +37,19 @@
     "@emotion/css": "^11.10.5"
   },
   "peerDependencies": {
-    "solid-js": ">=1.0.0",
-    "@tanstack/solid-query": "https://pkg.csb.dev/TanStack/query/commit/5aa86e17/@tanstack/solid-query"
+    "@tanstack/solid-query": "https://pkg.csb.dev/TanStack/query/commit/5aa86e17/@tanstack/solid-query",
+    "solid-js": ">=1.0.0"
   },
   "devDependencies": {
+    "@tanstack/solid-query": "https://pkg.csb.dev/TanStack/query/commit/5aa86e17/@tanstack/solid-query",
     "prettier": "2.7.1",
     "rollup": "^2.77.2",
     "rollup-preset-solid": "^1.4.0",
     "solid-js": "^1.4.8",
-    "@tanstack/solid-query": "https://pkg.csb.dev/TanStack/query/commit/5aa86e17/@tanstack/solid-query",
     "taze": "^0.7.6",
     "typescript": "^4.7.4",
     "vite": "^3.0.4",
-    "vite-plugin-solid": "^2.3.0"
+    "vite-plugin-solid": "^2.5.0"
   },
   "keywords": [
     "solid"

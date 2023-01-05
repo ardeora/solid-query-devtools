@@ -1,29 +1,31 @@
-import type { Component } from "solid-js";
-import logo from "./logo.svg";
-import styles from "./App.module.css";
-import { Hello } from "../src";
+import { createQuery } from "@tanstack/solid-query";
+import { Component, createEffect, Match, Switch } from "solid-js";
+import { SolidQueryDevtools } from "../src";
 
 const App: Component = () => {
+  const res = createQuery(() => ({
+    queryKey: ["test", "hello"],
+    queryFn: () => {
+      return new Promise<string>((resolve) => {
+        setTimeout(() => {
+          resolve("hello world");
+        }, 3000);
+      });
+    },
+  }));
+  createEffect(() => console.log(res));
   return (
-    <div class={styles.App}>
-      <header class={styles.header}>
-        <img src={logo} class={styles.logo} alt="logo" />
-        <h1>
-          <Hello></Hello>
-        </h1>
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
-        <a
-          class={styles.link}
-          href="https://github.com/solidjs/solid"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn Solid
-        </a>
-      </header>
-    </div>
+    <>
+      <SolidQueryDevtools />
+      <Switch>
+        <Match when={res.isLoading}>
+          <h1>loading</h1>
+        </Match>
+        <Match when={res.data}>
+          <h1>{res.data}</h1>
+        </Match>
+      </Switch>
+    </>
   );
 };
 
