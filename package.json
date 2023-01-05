@@ -43,17 +43,21 @@
     "update-deps": "taze -w && pnpm i",
     "typecheck": "tsc --noEmit"
   },
-  "dependencies": {},
+  "dependencies": {
+    "@emotion/css": "^11.10.5"
+  },
   "peerDependencies": {
-    "solid-js": ">=1.0.0"
+    "solid-js": ">=1.0.0",
+    "@tanstack/solid-query": "https://pkg.csb.dev/TanStack/query/commit/5aa86e17/@tanstack/solid-query"
   },
   "devDependencies": {
     "prettier": "2.7.1",
     "rollup": "^2.77.2",
     "rollup-preset-solid": "^1.4.0",
-    "typescript": "^4.7.4",
     "solid-js": "^1.4.8",
+    "@tanstack/solid-query": "https://pkg.csb.dev/TanStack/query/commit/5aa86e17/@tanstack/solid-query",
     "taze": "^0.7.6",
+    "typescript": "^4.7.4",
     "vite": "^3.0.4",
     "vite-plugin-solid": "^2.3.0"
   },
