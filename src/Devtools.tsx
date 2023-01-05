@@ -379,7 +379,7 @@ const getStyles = () => {
       font-weight: ${font.weight.medium};
     `,
     selectedQueryStatusTag: css`
-      border: ${colors.gray[300]} 1px solid;
+      outline: ${colors.gray[300]} 1px solid;
     `,
     queryStatusCount: css`
       padding: 0 8px;
