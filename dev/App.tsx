@@ -5,7 +5,13 @@ import { SolidQueryDevtools } from "../src";
 const App: Component = () => {
   const res = createQuery(() => ({
     queryKey: ["test", "hello"],
-    queryFn: () => "hello",
+    queryFn: () => {
+      return new Promise<string>((resolve) => {
+        setTimeout(() => {
+          resolve("hello world");
+        }, 3000);
+      });
+    },
   }));
   createEffect(() => console.log(res));
   return (
