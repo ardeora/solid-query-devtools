@@ -9,14 +9,12 @@ const App: Component = () => {
       return new Promise<string>((resolve) => {
         setTimeout(() => {
           resolve("hello world");
-        }, 3000);
+        }, 2000);
       });
     },
   }));
-  createEffect(() => console.log(res));
   return (
     <>
-      <SolidQueryDevtools />
       <Switch>
         <Match when={res.isLoading}>
           <h1>loading</h1>
@@ -25,6 +23,7 @@ const App: Component = () => {
           <h1>{res.data}</h1>
         </Match>
       </Switch>
+      <SolidQueryDevtools />
     </>
   );
 };

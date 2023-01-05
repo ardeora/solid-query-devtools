@@ -1,7 +1,6 @@
 import {
   Accessor,
   Component,
-  createComputed,
   createEffect,
   createMemo,
   createSignal,
@@ -16,6 +15,10 @@ import { Query, QueryCache, useQueryClient, onlineManager } from "@tanstack/soli
 import { getQueryStatusLabel, getQueryStatusColor } from "./utils";
 import { ArrowUp, ChevronDown, Offline, Search, Settings, Wifi } from "./icons";
 
+const [selectedStatus, setSelectedStatus] = createSignal<ReturnType<
+  typeof getQueryStatusLabel
+> | null>(null);
+
 export const DevtoolsPanel: Component = () => {
   const styles = getStyles();
   const queryClient = useQueryClient();
@@ -23,7 +26,16 @@ export const DevtoolsPanel: Component = () => {
 
   const queryCount = createSubscribeToQueryCache(queryCache, () => queryCache.getAll().length);
 
-  const queries = createMemo(on(queryCount, () => queryCache.getAll()));
+  const queries = createMemo(
+    on(
+      () => [queryCount(), selectedStatus()],
+      () => {
+        const curr = queryCache.getAll();
+        const status = selectedStatus();
+        return status === null ? curr : curr.filter((e) => getQueryStatusLabel(e) === status);
+      },
+    ),
+  );
 
   const [offline, setOffline] = createSignal(false);
 
@@ -136,7 +148,7 @@ export const QueryRow: Component<{ query: Query }> = (props) => {
   );
 
   return (
-    <Show when={queryState()} keyed>
+    <Show when={queryState()}>
       {(queryState) => (
         <div class={styles.queryRow}>
           <div
@@ -221,7 +233,17 @@ export const QueryStatus: Component<QueryStatusProps> = (props) => {
   const styles = getStyles();
 
   return (
-    <span class={styles.queryStatusTag}>
+    <span
+      onClick={() =>
+        setSelectedStatus((prev) =>
+          prev === props.label.toLowerCase() ? null : (props.label.toLowerCase() as any),
+        )
+      }
+      classList={{
+        [styles.queryStatusTag]: true,
+        [styles.selectedQueryStatusTag]: selectedStatus() === props.label.toLowerCase(),
+      }}
+    >
       <span
         class={css`
           width: ${tokens.size[2]};
@@ -345,6 +367,7 @@ const getStyles = () => {
     `,
     queryStatusTag: css`
       display: flex;
+      cursor: pointer;
       gap: ${tokens.size[1.5]};
       background: ${colors.darkGray[500]};
       border-radius: ${tokens.border.radius.md};
@@ -354,6 +377,9 @@ const getStyles = () => {
       align-items: center;
       line-height: ${font.lineHeight.md};
       font-weight: ${font.weight.medium};
+    `,
+    selectedQueryStatusTag: css`
+      border: ${colors.gray[300]} 1px solid;
     `,
     queryStatusCount: css`
       padding: 0 8px;
