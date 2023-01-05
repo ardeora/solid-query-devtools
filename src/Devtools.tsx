@@ -12,12 +12,7 @@ import {
 } from "solid-js";
 import { css, cx } from "@emotion/css";
 import { tokens } from "./theme";
-import {
-  Query,
-  QueryCache,
-  useQueryClient,
-  onlineManager,
-} from "@tanstack/solid-query";
+import { Query, QueryCache, useQueryClient, onlineManager } from "@tanstack/solid-query";
 import { getQueryStatusLabel, getQueryStatusColor } from "./utils";
 import { ArrowUp, ChevronDown, Offline, Search, Settings, Wifi } from "./icons";
 
@@ -26,10 +21,7 @@ export const DevtoolsPanel: Component = () => {
   const queryClient = useQueryClient();
   const queryCache = queryClient.getQueryCache();
 
-  const queryCount = createSubscribeToQueryCache(
-    queryCache,
-    () => queryCache.getAll().length
-  );
+  const queryCount = createSubscribeToQueryCache(queryCache, () => queryCache.getAll().length);
 
   const queries = createMemo(on(queryCount, () => queryCache.getAll()));
 
@@ -110,7 +102,7 @@ export const QueryRow: Component<{ query: Query }> = (props) => {
     () =>
       queryCache.find({
         queryKey: props.query.queryKey,
-      })?.state
+      })?.state,
   );
 
   const isStale = createSubscribeToQueryCache(
@@ -120,7 +112,7 @@ export const QueryRow: Component<{ query: Query }> = (props) => {
         .find({
           queryKey: props.query.queryKey,
         })
-        ?.isStale() ?? false
+        ?.isStale() ?? false,
   );
 
   const isDisabled = createSubscribeToQueryCache(
@@ -130,7 +122,7 @@ export const QueryRow: Component<{ query: Query }> = (props) => {
         .find({
           queryKey: props.query.queryKey,
         })
-        ?.isDisabled() ?? false
+        ?.isDisabled() ?? false,
   );
 
   const observers = createSubscribeToQueryCache(
@@ -140,7 +132,7 @@ export const QueryRow: Component<{ query: Query }> = (props) => {
         .find({
           queryKey: props.query.queryKey,
         })
-        ?.getObserversCount() ?? 0
+        ?.getObserversCount() ?? 0,
   );
 
   return (
@@ -165,7 +157,7 @@ export const QueryRow: Component<{ query: Query }> = (props) => {
                     isStale: isStale(),
                   })
                 ][300]};
-              `
+              `,
             )}
           >
             {observers()}
@@ -183,37 +175,27 @@ export const QueryStatusCount: Component = () => {
 
   const stale = createSubscribeToQueryCache(
     queryCache,
-    () =>
-      queryCache.getAll().filter((q) => getQueryStatusLabel(q) === "stale")
-        .length
+    () => queryCache.getAll().filter((q) => getQueryStatusLabel(q) === "stale").length,
   );
 
   const fresh = createSubscribeToQueryCache(
     queryCache,
-    () =>
-      queryCache.getAll().filter((q) => getQueryStatusLabel(q) === "fresh")
-        .length
+    () => queryCache.getAll().filter((q) => getQueryStatusLabel(q) === "fresh").length,
   );
 
   const fetching = createSubscribeToQueryCache(
     queryCache,
-    () =>
-      queryCache.getAll().filter((q) => getQueryStatusLabel(q) === "fetching")
-        .length
+    () => queryCache.getAll().filter((q) => getQueryStatusLabel(q) === "fetching").length,
   );
 
   const paused = createSubscribeToQueryCache(
     queryCache,
-    () =>
-      queryCache.getAll().filter((q) => getQueryStatusLabel(q) === "paused")
-        .length
+    () => queryCache.getAll().filter((q) => getQueryStatusLabel(q) === "paused").length,
   );
 
   const inactive = createSubscribeToQueryCache(
     queryCache,
-    () =>
-      queryCache.getAll().filter((q) => getQueryStatusLabel(q) === "inactive")
-        .length
+    () => queryCache.getAll().filter((q) => getQueryStatusLabel(q) === "inactive").length,
   );
 
   const styles = getStyles();
@@ -257,7 +239,7 @@ export const QueryStatus: Component<QueryStatusProps> = (props) => {
             css`
               background-color: ${tokens.colors[props.color][900]};
               color: ${tokens.colors[props.color][300]};
-            `
+            `,
         )}
       >
         {props.count}
@@ -268,7 +250,7 @@ export const QueryStatus: Component<QueryStatusProps> = (props) => {
 
 const createSubscribeToQueryCache = <T,>(
   queryCache: QueryCache,
-  callback: () => Exclude<T, Function>
+  callback: () => Exclude<T, Function>,
 ): Accessor<T> => {
   const [value, setValue] = createSignal<T>(callback());
 
