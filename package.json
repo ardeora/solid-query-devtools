@@ -51,7 +51,7 @@
     "solid-js": ">=1.0.0"
   },
   "devDependencies": {
-    "@tanstack/solid-query": "^4.20.9",
+    "@tanstack/solid-query": "https://pkg.csb.dev/TanStack/query/commit/5aa86e17/@tanstack/solid-query",
     "prettier": "2.7.1",
     "rollup": "^2.77.2",
     "rollup-preset-solid": "^1.4.0",

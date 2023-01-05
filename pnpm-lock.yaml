@@ -2,7 +2,7 @@ lockfileVersion: 5.4
 
 specifiers:
   '@emotion/css': ^11.10.5
-  '@tanstack/solid-query': ^4.20.9
+  '@tanstack/solid-query': https://pkg.csb.dev/TanStack/query/commit/5aa86e17/@tanstack/solid-query
   prettier: 2.7.1
   rollup: ^2.77.2
   rollup-preset-solid: ^1.4.0
@@ -16,7 +16,7 @@ dependencies:
   '@emotion/css': 11.10.5
 
 devDependencies:
-  '@tanstack/solid-query': 4.20.9_solid-js@1.4.8
+  '@tanstack/solid-query': '@pkg.csb.dev/TanStack/query/commit/5aa86e17/@tanstack/solid-query_solid-js@1.4.8'
   prettier: 2.7.1
   rollup: 2.77.2
   rollup-preset-solid: 1.4.0
@@ -1710,19 +1710,6 @@ packages:
       estree-walker: 1.0.1
       picomatch: 2.3.0
       rollup: 2.77.2
-    dev: true
-
-  /@tanstack/query-core/4.20.9:
-    resolution: {integrity: sha512-XTEEvOGy7wlABPTYfmg7U287WYcf2PV8lH15oKWD2I09okqMOHrB23WxyikEVRwJCjYNKcCW0BuYaAY4S2g/jg==}
-    dev: true
-
-  /@tanstack/solid-query/4.20.9_solid-js@1.4.8:
-    resolution: {integrity: sha512-A27K9myMrtcN+sUHmCTcX6SUf3TlQv+OsnC4hep4V0gVfB+44lloC1uZAIM7CT6WPkebqiyQ1toTl3P+/xs1EQ==}
-    peerDependencies:
-      solid-js: ^1.5.7
-    dependencies:
-      '@tanstack/query-core': 4.20.9
-      solid-js: 1.4.8
     dev: true
 
   /@tootallnate/once/2.0.0:
@@ -3757,4 +3744,22 @@ packages:
       string-width: 4.2.3
       y18n: 5.0.8
       yargs-parser: 21.0.1
+    dev: true
+
+  '@pkg.csb.dev/TanStack/query/commit/5aa86e17/@tanstack/query-core':
+    resolution: {tarball: https://pkg.csb.dev/TanStack/query/commit/5aa86e17/@tanstack/query-core}
+    name: '@tanstack/query-core'
+    version: 4.20.4
+    dev: true
+
+  '@pkg.csb.dev/TanStack/query/commit/5aa86e17/@tanstack/solid-query_solid-js@1.4.8':
+    resolution: {tarball: https://pkg.csb.dev/TanStack/query/commit/5aa86e17/@tanstack/solid-query}
+    id: '@pkg.csb.dev/TanStack/query/commit/5aa86e17/@tanstack/solid-query'
+    name: '@tanstack/solid-query'
+    version: 4.20.4
+    peerDependencies:
+      solid-js: ^1.5.7
+    dependencies:
+      '@tanstack/query-core': '@pkg.csb.dev/TanStack/query/commit/5aa86e17/@tanstack/query-core'
+      solid-js: 1.4.8
     dev: true
