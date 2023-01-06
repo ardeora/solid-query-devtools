@@ -96,11 +96,7 @@ export const DevtoolsPanel: Component = () => {
           </div>
         </div>
       </div>
-      <div class={styles.detailsContainer}>
-        <div>
-          Query Details <br /> Work in Progress 😋
-        </div>
-      </div>
+      <QueryDetails />
     </aside>
   );
 };
@@ -534,4 +530,16 @@ const getStyles = () => {
       }
     `,
   };
+};
+
+const QueryDetails = () => {
+  const styles = getStyles();
+  return (
+    <div class={styles.detailsContainer}>
+      <div>
+        <span>{selectedQueryHash()}</span>
+        Query Details <br /> Work in Progress 😋
+      </div>
+    </div>
+  );
 };
