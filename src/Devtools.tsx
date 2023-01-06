@@ -148,7 +148,7 @@ export const QueryRow: Component<{ query: Query }> = (props) => {
   );
 
   return (
-    <Show when={queryState()}>
+    <Show when={queryState()} keyed>
       {(queryState) => (
         <div class={styles.queryRow}>
           <div
