@@ -18,6 +18,7 @@ import { ArrowUp, ChevronDown, Offline, Search, Settings, Wifi } from "./icons";
 const [selectedStatus, setSelectedStatus] = createSignal<ReturnType<
   typeof getQueryStatusLabel
 > | null>(null);
+const [selectedQueryHash, setSelectedQueryHash] = createSignal<string | null>(null);
 
 export const DevtoolsPanel: Component = () => {
   const styles = getStyles();
@@ -150,7 +151,17 @@ export const QueryRow: Component<{ query: Query }> = (props) => {
   return (
     <Show when={queryState()} keyed>
       {(queryState) => (
-        <div class={styles.queryRow}>
+        <div
+          onClick={() =>
+            setSelectedQueryHash(
+              props.query.queryHash === selectedQueryHash() ? null : props.query.queryHash,
+            )
+          }
+          classList={{
+            [styles.queryRow]: true,
+            [styles.selectedQueryRow]: selectedQueryHash() === props.query.queryHash,
+          }}
+        >
           <div
             class={cx(
               "SQDObserverCount",
@@ -380,6 +391,9 @@ const getStyles = () => {
     `,
     selectedQueryStatusTag: css`
       outline: ${colors.gray[300]} 1px solid;
+    `,
+    selectedQueryRow: css`
+      background-color: ${colors.darkGray[600]};
     `,
     queryStatusCount: css`
       padding: 0 8px;
