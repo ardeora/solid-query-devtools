@@ -12,7 +12,12 @@ import {
 import { css, cx } from "@emotion/css";
 import { tokens } from "./theme";
 import { Query, QueryCache, useQueryClient, onlineManager } from "@tanstack/solid-query";
-import { getQueryStatusLabel, getQueryStatusColor } from "./utils";
+import {
+  getQueryStatusLabel,
+  getQueryStatusColor,
+  queryStatusLabels,
+  IQueryStatusLabel,
+} from "./utils";
 import { ArrowUp, ChevronDown, Offline, Search, Settings, Wifi } from "./icons";
 
 const [selectedStatus, setSelectedStatus] = createSignal<ReturnType<
@@ -25,7 +30,14 @@ export const DevtoolsPanel: Component = () => {
   const queryClient = useQueryClient();
   const queryCache = queryClient.getQueryCache();
 
-  const queryCount = createSubscribeToQueryCache(queryCache, () => queryCache.getAll().length);
+  const queryCount = createSubscribeToQueryCache(queryCache, () => {
+    const curr = queryCache.getAll();
+    const res: { [K in IQueryStatusLabel]?: number } = {};
+    for (const label of queryStatusLabels) {
+      res[label] = curr.filter((e) => getQueryStatusLabel(e) === label).length;
+    }
+    return res;
+  });
 
   const queries = createMemo(
     on(
@@ -33,6 +45,7 @@ export const DevtoolsPanel: Component = () => {
       () => {
         const curr = queryCache.getAll();
         const status = selectedStatus();
+        console.log(selectedStatus());
         return status === null ? curr : curr.filter((e) => getQueryStatusLabel(e) === status);
       },
     ),

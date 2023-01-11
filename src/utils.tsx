@@ -12,6 +12,9 @@ export function getQueryStatusLabel(query: Query) {
     : "fresh";
 }
 
+export const queryStatusLabels = ["fresh", "stale", "paused", "inactive", "fetching"] as const;
+export type IQueryStatusLabel = typeof queryStatusLabels[number];
+
 export function getQueryStatusColor({
   queryState,
   observerCount,
