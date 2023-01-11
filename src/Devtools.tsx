@@ -45,7 +45,6 @@ export const DevtoolsPanel: Component = () => {
       () => {
         const curr = queryCache.getAll();
         const status = selectedStatus();
-        console.log(selectedStatus());
         return status === null ? curr : curr.filter((e) => getQueryStatusLabel(e) === status);
       },
     ),
@@ -166,10 +165,10 @@ export const QueryRow: Component<{ query: Query }> = (props) => {
               props.query.queryHash === selectedQueryHash() ? null : props.query.queryHash,
             )
           }
-          classList={{
-            [styles.queryRow]: true,
-            [styles.selectedQueryRow]: selectedQueryHash() === props.query.queryHash,
-          }}
+          class={cx(
+            styles.queryRow,
+            selectedQueryHash() === props.query.queryHash && styles.selectedQueryRow,
+          )}
         >
           <div
             class={cx(
@@ -253,16 +252,16 @@ export const QueryStatus: Component<QueryStatusProps> = (props) => {
   const styles = getStyles();
 
   return (
-    <span
+    <button
       onClick={() =>
         setSelectedStatus((prev) =>
           prev === props.label.toLowerCase() ? null : (props.label.toLowerCase() as any),
         )
       }
-      classList={{
-        [styles.queryStatusTag]: true,
-        [styles.selectedQueryStatusTag]: selectedStatus() === props.label.toLowerCase(),
-      }}
+      class={cx(
+        styles.queryStatusTag,
+        selectedStatus() === props.label.toLowerCase() && styles.selectedQueryStatusTag,
+      )}
     >
       <span
         class={css`
@@ -271,7 +270,7 @@ export const QueryStatus: Component<QueryStatusProps> = (props) => {
           border-radius: ${tokens.border.radius.full};
           background-color: ${tokens.colors[props.color][500]};
         `}
-      ></span>
+      />
       <span>{props.label}</span>
       <span
         class={cx(
@@ -286,7 +285,7 @@ export const QueryStatus: Component<QueryStatusProps> = (props) => {
       >
         {props.count}
       </span>
-    </span>
+    </button>
   );
 };
 
@@ -397,6 +396,7 @@ const getStyles = () => {
       align-items: center;
       line-height: ${font.lineHeight.md};
       font-weight: ${font.weight.medium};
+      border: none;
     `,
     selectedQueryStatusTag: css`
       outline: ${colors.gray[300]} 1px solid;
