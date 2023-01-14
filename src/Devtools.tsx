@@ -1,7 +1,6 @@
 import {
   Accessor,
   Component,
-  createComputed,
   createEffect,
   createMemo,
   createSignal,
@@ -13,17 +12,43 @@ import {
 import { css, cx } from "@emotion/css";
 import { tokens } from "./theme";
 import { Query, QueryCache, useQueryClient, onlineManager } from "@tanstack/solid-query";
-import { getQueryStatusLabel, getQueryStatusColor } from "./utils";
+import {
+  getQueryStatusLabel,
+  getQueryStatusColor,
+  queryStatusLabels,
+  IQueryStatusLabel,
+} from "./utils";
 import { ArrowUp, ChevronDown, Offline, Search, Settings, Wifi } from "./icons";
+
+const [selectedStatus, setSelectedStatus] = createSignal<ReturnType<
+  typeof getQueryStatusLabel
+> | null>(null);
+const [selectedQueryHash, setSelectedQueryHash] = createSignal<string | null>(null);
 
 export const DevtoolsPanel: Component = () => {
   const styles = getStyles();
   const queryClient = useQueryClient();
   const queryCache = queryClient.getQueryCache();
 
-  const queryCount = createSubscribeToQueryCache(queryCache, () => queryCache.getAll().length);
+  const queryCount = createSubscribeToQueryCache(queryCache, () => {
+    const curr = queryCache.getAll();
+    const res: { [K in IQueryStatusLabel]?: number } = {};
+    for (const label of queryStatusLabels) {
+      res[label] = curr.filter((e) => getQueryStatusLabel(e) === label).length;
+    }
+    return res;
+  });
 
-  const queries = createMemo(on(queryCount, () => queryCache.getAll()));
+  const queries = createMemo(
+    on(
+      () => [queryCount(), selectedStatus()],
+      () => {
+        const curr = queryCache.getAll();
+        const status = selectedStatus();
+        return status === null ? curr : curr.filter((e) => getQueryStatusLabel(e) === status);
+      },
+    ),
+  );
 
   const [offline, setOffline] = createSignal(false);
 
@@ -83,11 +108,7 @@ export const DevtoolsPanel: Component = () => {
           </div>
         </div>
       </div>
-      <div class={styles.detailsContainer}>
-        <div>
-          Query Details <br /> Work in Progress 😋
-        </div>
-      </div>
+      <QueryDetails />
     </aside>
   );
 };
@@ -138,7 +159,17 @@ export const QueryRow: Component<{ query: Query }> = (props) => {
   return (
     <Show when={queryState()} keyed>
       {(queryState) => (
-        <div class={styles.queryRow}>
+        <div
+          onClick={() =>
+            setSelectedQueryHash(
+              props.query.queryHash === selectedQueryHash() ? null : props.query.queryHash,
+            )
+          }
+          class={cx(
+            styles.queryRow,
+            selectedQueryHash() === props.query.queryHash && styles.selectedQueryRow,
+          )}
+        >
           <div
             class={cx(
               "SQDObserverCount",
@@ -221,7 +252,17 @@ export const QueryStatus: Component<QueryStatusProps> = (props) => {
   const styles = getStyles();
 
   return (
-    <span class={styles.queryStatusTag}>
+    <button
+      onClick={() =>
+        setSelectedStatus((prev) =>
+          prev === props.label.toLowerCase() ? null : (props.label.toLowerCase() as any),
+        )
+      }
+      class={cx(
+        styles.queryStatusTag,
+        selectedStatus() === props.label.toLowerCase() && styles.selectedQueryStatusTag,
+      )}
+    >
       <span
         class={css`
           width: ${tokens.size[2]};
@@ -229,7 +270,7 @@ export const QueryStatus: Component<QueryStatusProps> = (props) => {
           border-radius: ${tokens.border.radius.full};
           background-color: ${tokens.colors[props.color][500]};
         `}
-      ></span>
+      />
       <span>{props.label}</span>
       <span
         class={cx(
@@ -244,7 +285,7 @@ export const QueryStatus: Component<QueryStatusProps> = (props) => {
       >
         {props.count}
       </span>
-    </span>
+    </button>
   );
 };
 
@@ -345,6 +386,7 @@ const getStyles = () => {
     `,
     queryStatusTag: css`
       display: flex;
+      cursor: pointer;
       gap: ${tokens.size[1.5]};
       background: ${colors.darkGray[500]};
       border-radius: ${tokens.border.radius.md};
@@ -354,6 +396,13 @@ const getStyles = () => {
       align-items: center;
       line-height: ${font.lineHeight.md};
       font-weight: ${font.weight.medium};
+      border: none;
+    `,
+    selectedQueryStatusTag: css`
+      outline: ${colors.gray[300]} 1px solid;
+    `,
+    selectedQueryRow: css`
+      background-color: ${colors.darkGray[600]};
     `,
     queryStatusCount: css`
       padding: 0 8px;
@@ -494,4 +543,16 @@ const getStyles = () => {
       }
     `,
   };
+};
+
+const QueryDetails = () => {
+  const styles = getStyles();
+  return (
+    <div class={styles.detailsContainer}>
+      <div>
+        <span>{selectedQueryHash()}</span>
+        Query Details <br /> Work in Progress 😋
+      </div>
+    </div>
+  );
 };
