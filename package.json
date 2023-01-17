@@ -34,7 +34,9 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@emotion/css": "^11.10.5"
+    "@emotion/css": "^11.10.5",
+    "@solid-primitives/keyed": "^1.1.4",
+    "superjson": "^1.12.1"
   },
   "peerDependencies": {
     "@tanstack/solid-query": "https://pkg.csb.dev/TanStack/query/commit/5aa86e17/@tanstack/solid-query",

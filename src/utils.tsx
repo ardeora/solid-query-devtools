@@ -1,4 +1,5 @@
 import type { Query } from "@tanstack/solid-query";
+import SuperJSON from "superjson";
 
 export function getQueryStatusLabel(query: Query) {
   return query.state.fetchStatus === "fetching"
@@ -34,3 +35,26 @@ export function getQueryStatusColor({
     ? "yellow"
     : "green";
 }
+
+export function getQueryStatusColorByLabel(label: IQueryStatusLabel) {
+  return label === "fresh"
+    ? "green"
+    : label === "stale"
+    ? "yellow"
+    : label === "paused"
+    ? "purple"
+    : label === "inactive"
+    ? "gray"
+    : "blue";
+}
+
+/**
+ * Displays a string regardless the type of the data
+ * @param {unknown} value Value to be stringified
+ * @param {boolean} beautify Formats json to multiline
+ */
+export const displayValue = (value: unknown, beautify: boolean = false) => {
+  const { json } = SuperJSON.serialize(value);
+
+  return JSON.stringify(json, null, beautify ? 2 : undefined);
+};

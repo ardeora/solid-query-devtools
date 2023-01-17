@@ -9,6 +9,7 @@ import {
   onCleanup,
   Show,
 } from "solid-js";
+import { createStore } from "solid-js/store";
 import { css, cx } from "@emotion/css";
 import { tokens } from "./theme";
 import { Query, QueryCache, useQueryClient, onlineManager } from "@tanstack/solid-query";
@@ -17,8 +18,11 @@ import {
   getQueryStatusColor,
   queryStatusLabels,
   IQueryStatusLabel,
+  displayValue,
+  getQueryStatusColorByLabel,
 } from "./utils";
 import { ArrowUp, ChevronDown, Offline, Search, Settings, Wifi } from "./icons";
+import Explorer from "./Explorer";
 
 const [selectedStatus, setSelectedStatus] = createSignal<ReturnType<
   typeof getQueryStatusLabel
@@ -108,7 +112,9 @@ export const DevtoolsPanel: Component = () => {
           </div>
         </div>
       </div>
-      <QueryDetails />
+      <Show when={selectedQueryHash()}>
+        <QueryDetails />
+      </Show>
     </aside>
   );
 };
@@ -157,45 +163,43 @@ export const QueryRow: Component<{ query: Query }> = (props) => {
   );
 
   return (
-    <Show when={queryState()} keyed>
-      {(queryState) => (
+    <Show when={queryState()}>
+      <button
+        onClick={() =>
+          setSelectedQueryHash(
+            props.query.queryHash === selectedQueryHash() ? null : props.query.queryHash,
+          )
+        }
+        class={cx(
+          styles.queryRow,
+          selectedQueryHash() === props.query.queryHash && styles.selectedQueryRow,
+        )}
+      >
         <div
-          onClick={() =>
-            setSelectedQueryHash(
-              props.query.queryHash === selectedQueryHash() ? null : props.query.queryHash,
-            )
-          }
           class={cx(
-            styles.queryRow,
-            selectedQueryHash() === props.query.queryHash && styles.selectedQueryRow,
+            "SQDObserverCount",
+            css`
+              background-color: ${tokens.colors[
+                getQueryStatusColor({
+                  queryState: queryState()!,
+                  observerCount: observers(),
+                  isStale: isStale(),
+                })
+              ][900]};
+              color: ${tokens.colors[
+                getQueryStatusColor({
+                  queryState: queryState()!,
+                  observerCount: observers(),
+                  isStale: isStale(),
+                })
+              ][300]};
+            `,
           )}
         >
-          <div
-            class={cx(
-              "SQDObserverCount",
-              css`
-                background-color: ${tokens.colors[
-                  getQueryStatusColor({
-                    queryState: queryState,
-                    observerCount: observers(),
-                    isStale: isStale(),
-                  })
-                ][900]};
-                color: ${tokens.colors[
-                  getQueryStatusColor({
-                    queryState: queryState,
-                    observerCount: observers(),
-                    isStale: isStale(),
-                  })
-                ][300]};
-              `,
-            )}
-          >
-            {observers()}
-          </div>
-          <div class="SQDQueryHash">{props.query.queryHash}</div>
+          {observers()}
         </div>
-      )}
+        <code class="SQDQueryHash">{props.query.queryHash}</code>
+      </button>
     </Show>
   );
 };
@@ -260,7 +264,15 @@ export const QueryStatus: Component<QueryStatusProps> = (props) => {
       }
       class={cx(
         styles.queryStatusTag,
-        selectedStatus() === props.label.toLowerCase() && styles.selectedQueryStatusTag,
+        selectedStatus() === props.label.toLowerCase()
+          ? props.color === "gray"
+            ? css`
+                outline: ${tokens.colors[props.color][600]} 2px solid;
+              `
+            : css`
+                outline: ${tokens.colors[props.color][800]} 2px solid;
+              `
+          : null,
       )}
     >
       <span
@@ -299,6 +311,10 @@ const createSubscribeToQueryCache = <T,>(
     setValue(callback());
   });
 
+  createEffect(() => {
+    setValue(callback());
+  });
+
   onCleanup(() => {
     unsub();
   });
@@ -307,7 +323,7 @@ const createSubscribeToQueryCache = <T,>(
 };
 
 const getStyles = () => {
-  const { colors, font } = tokens;
+  const { colors, font, size } = tokens;
 
   return {
     panel: css`
@@ -315,7 +331,7 @@ const getStyles = () => {
       bottom: 0;
       right: 0;
       left: 0;
-      height: 450px;
+      height: 500px;
       background-color: ${colors.darkGray[800]};
       border-top: ${colors.darkGray[300]} 1px solid;
       display: flex;
@@ -331,25 +347,6 @@ const getStyles = () => {
       background-color: ${colors.darkGray[700]};
       display: flex;
       flex-direction: column;
-    `,
-    detailsContainer: css`
-      flex: 1 1 450px;
-      background-color: ${colors.darkGray[700]};
-      display: flex;
-      flex-direction: column;
-      max-width: 480px;
-      padding: ${tokens.size[5]};
-      display: flex;
-
-      & > div {
-        border: ${colors.gray[700]} 2px dashed;
-        height: 100%;
-        border-radius: ${tokens.border.radius.xl};
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        text-align: center;
-      }
     `,
     row: css`
       display: flex;
@@ -381,7 +378,7 @@ const getStyles = () => {
     `,
     queryStatusContainer: css`
       display: flex;
-      gap: ${tokens.size[2.5]};
+      gap: ${tokens.size[2]};
       height: min-content;
     `,
     queryStatusTag: css`
@@ -398,11 +395,8 @@ const getStyles = () => {
       font-weight: ${font.weight.medium};
       border: none;
     `,
-    selectedQueryStatusTag: css`
-      outline: ${colors.gray[300]} 1px solid;
-    `,
     selectedQueryRow: css`
-      background-color: ${colors.darkGray[600]};
+      background-color: ${colors.darkGray[500]};
     `,
     queryStatusCount: css`
       padding: 0 8px;
@@ -412,8 +406,7 @@ const getStyles = () => {
       color: ${colors.gray[400]};
       background-color: ${colors.darkGray[300]};
       border-radius: 3px;
-      /* font-size: ${font.size.md};
-      font-family: "Roboto", monospace; */
+      font-variant-numeric: tabular-nums;
     `,
     filtersContainer: css`
       display: flex;
@@ -521,7 +514,12 @@ const getStyles = () => {
     queryRow: css`
       display: flex;
       align-items: center;
+      padding: 0;
+      background-color: inherit;
+      border: none;
+      cursor: pointer;
       & .SQDObserverCount {
+        user-select: none;
         width: ${tokens.size[8]};
         height: ${tokens.size[8]};
         display: flex;
@@ -532,6 +530,7 @@ const getStyles = () => {
         border-bottom: 1px solid ${colors.darkGray[700]};
       }
       & .SQDQueryHash {
+        user-select: text;
         font-size: ${font.size.sm};
         display: flex;
         align-items: center;
@@ -540,19 +539,251 @@ const getStyles = () => {
         padding: 0 ${tokens.size[2]};
         font-family: "Menlo", "Fira Code", monospace;
         border-bottom: 1px solid ${colors.darkGray[400]};
+
+        &:hover {
+          background-color: ${colors.darkGray[600]};
+        }
+      }
+    `,
+    detailsContainer: css`
+      flex: 1 1 550px;
+      background-color: ${colors.darkGray[700]};
+      display: flex;
+      flex-direction: column;
+      max-width: 600px;
+      overflow-y: auto;
+      display: flex;
+    `,
+    detailsHeader: css`
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      background-color: ${colors.darkGray[600]};
+      padding: ${tokens.size[2]} ${tokens.size[2]};
+      font-weight: ${font.weight.medium};
+      font-size: ${font.size.sm};
+    `,
+    detailsBody: css`
+      margin: ${tokens.size[2]} 0px ${tokens.size[3]} 0px;
+      & > div {
+        display: flex;
+        align-items: stretch;
+        padding: 0 ${tokens.size[2]};
+        line-height: ${font.lineHeight.sm};
+        justify-content: space-between;
+        & > span {
+          font-size: ${font.size.sm};
+        }
+        & > span:nth-child(2) {
+          font-variant-numeric: tabular-nums;
+        }
+      }
+
+      & > div:first-child {
+        margin-bottom: ${tokens.size[2]};
+      }
+
+      & pre {
+        font-family: "Menlo", "Fira Code", monospace;
+        margin: 0;
+        font-size: ${font.size.sm};
+        line-height: ${font.lineHeight.sm};
+      }
+    `,
+    queryDetailsStatus: css`
+      border: 1px solid ${colors.darkGray[200]};
+      border-radius: ${tokens.border.radius.md};
+      font-weight: ${font.weight.medium};
+      padding: ${tokens.size[1]} ${tokens.size[2.5]};
+    `,
+    actionsBody: css`
+      flex-wrap: wrap;
+      margin: ${tokens.size[3]} 0px ${tokens.size[3]} 0px;
+      display: flex;
+      gap: ${tokens.size[2]};
+      padding: 0px ${tokens.size[2]};
+      & > button {
+        font-size: ${font.size.sm};
+        padding: ${tokens.size[2]} ${tokens.size[2]};
+        display: flex;
+        border-radius: ${tokens.border.radius.md};
+        border: 1px solid ${colors.darkGray[400]};
+        background-color: ${colors.darkGray[600]};
+        align-items: center;
+        gap: ${tokens.size[2]};
+        font-weight: ${font.weight.medium};
+        cursor: pointer;
+
+        &:hover {
+          background-color: ${colors.darkGray[500]};
+        }
+
+        & > span {
+          width: ${size[2]};
+          height: ${size[2]};
+          border-radius: ${tokens.border.radius.full};
+        }
       }
     `,
   };
 };
 
 const QueryDetails = () => {
+  const queryClient = useQueryClient();
+  const queryCache = queryClient.getQueryCache();
   const styles = getStyles();
+
+  const activeQuery = createSubscribeToQueryCache(queryCache, () =>
+    queryCache.getAll().find((query) => query.queryHash === selectedQueryHash()),
+  );
+
+  const activeQueryFresh = createSubscribeToQueryCache(queryCache, () => {
+    const query = queryCache.getAll().find((query) => query.queryHash === selectedQueryHash());
+    if (!query) return undefined;
+    return { ...query, state: { ...query.state } };
+  });
+
+  const activeQueryState = createSubscribeToQueryCache(
+    queryCache,
+    () => queryCache.getAll().find((query) => query.queryHash === selectedQueryHash())?.state,
+  );
+
+  const activeQueryStateData = createSubscribeToQueryCache(
+    queryCache,
+    () => queryCache.getAll().find((query) => query.queryHash === selectedQueryHash())?.state.data,
+  );
+
+  const statusLabel = createSubscribeToQueryCache(queryCache, () => {
+    const query = queryCache.getAll().find((query) => query.queryHash === selectedQueryHash());
+    if (!query) return "inactive";
+    return getQueryStatusLabel(query);
+  });
+
+  const isStale = createSubscribeToQueryCache(
+    queryCache,
+    () =>
+      queryCache
+        .getAll()
+        .find((query) => query.queryHash === selectedQueryHash())
+        ?.isStale() ?? false,
+  );
+
+  const observerCount = createSubscribeToQueryCache(
+    queryCache,
+    () =>
+      queryCache
+        .getAll()
+        .find((query) => query.queryHash === selectedQueryHash())
+        ?.getObserversCount() ?? 0,
+  );
+
   return (
-    <div class={styles.detailsContainer}>
-      <div>
-        <span>{selectedQueryHash()}</span>
-        Query Details <br /> Work in Progress 😋
+    <Show when={activeQuery() && activeQueryState()}>
+      <div class={styles.detailsContainer}>
+        <div class={styles.detailsHeader}>Query Details</div>
+        <div class={styles.detailsBody}>
+          <div>
+            <code>
+              <pre>{displayValue(activeQuery()!.queryKey, true)}</pre>
+            </code>
+            <span
+              class={cx(
+                styles.queryDetailsStatus,
+                css`
+                  background-color: ${tokens.colors[
+                    getQueryStatusColorByLabel(statusLabel())
+                  ][900]};
+                  color: ${tokens.colors[getQueryStatusColorByLabel(statusLabel())][300]};
+                  border-color: ${tokens.colors[getQueryStatusColorByLabel(statusLabel())][600]};
+                `,
+              )}
+            >
+              {statusLabel()}
+            </span>
+          </div>
+          <div>
+            <span>Observers:</span>
+            <span>{observerCount()}</span>
+          </div>
+          <div>
+            <span>Last Updated:</span>
+            <span>{new Date(activeQueryState()!.dataUpdatedAt).toLocaleTimeString()}</span>
+          </div>
+        </div>
+        <div class={styles.detailsHeader}>Actions</div>
+        <div class={styles.actionsBody}>
+          <button
+            class={css`
+              color: ${tokens.colors.blue[400]};
+            `}
+          >
+            <span
+              class={css`
+                background-color: ${tokens.colors.blue[400]};
+              `}
+            ></span>
+            Refetch
+          </button>
+          <button
+            class={css`
+              color: ${tokens.colors.yellow[400]};
+            `}
+          >
+            <span
+              class={css`
+                background-color: ${tokens.colors.yellow[400]};
+              `}
+            ></span>
+            Invalidate
+          </button>
+          <button
+            class={css`
+              color: ${tokens.colors.gray[300]};
+            `}
+          >
+            <span
+              class={css`
+                background-color: ${tokens.colors.gray[400]};
+              `}
+            ></span>
+            Reset
+          </button>
+          <button
+            class={css`
+              color: ${tokens.colors.red[400]};
+            `}
+          >
+            <span
+              class={css`
+                background-color: ${tokens.colors.red[400]};
+              `}
+            ></span>
+            Remove
+          </button>
+        </div>
+        <div class={styles.detailsHeader}>Data Explorer</div>
+        <div
+          style={{
+            padding: "0.5rem",
+          }}
+        >
+          <Explorer label="Data" value={activeQueryStateData()} defaultExpanded={{}} copyable />
+        </div>
+        <div class={styles.detailsHeader}>Query Explorer</div>
+        <div
+          style={{
+            padding: "0.5rem",
+          }}
+        >
+          <Explorer
+            label="Query"
+            value={activeQueryFresh()}
+            defaultExpanded={{
+              queryKey: true,
+            }}
+          />
+        </div>
       </div>
-    </div>
+    </Show>
   );
 };
