@@ -767,7 +767,7 @@ const QueryDetails = () => {
             padding: "0.5rem",
           }}
         >
-          <Explorer label="Data" value={activeQueryStateData()} defaultExpanded={{}} copyable />
+          {/* <Explorer label="Data" value={activeQueryStateData()} defaultExpanded={{}} copyable /> */}
         </div>
         <div class={styles.detailsHeader}>Query Explorer</div>
         <div

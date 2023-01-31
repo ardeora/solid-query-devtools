@@ -8,13 +8,11 @@ import {
   createMemo,
   createSignal,
   For,
-  Index,
   JSX,
   on,
   Show,
   splitProps,
 } from "solid-js";
-import { Key, Rerun } from "@solid-primitives/keyed";
 
 type Entry = {
   label: string;
@@ -103,43 +101,41 @@ export const DefaultRenderer: Renderer = (props) => {
           {props.expanded ? (
             props.subEntryPages.length === 1 ? (
               <div class={styles.subEntry}>
-                <Key by={(entry) => entry.label} each={props.subEntries}>
+                <For each={props.subEntries}>
                   {(entry) => {
                     console.log("BLOOOOP");
-                    return props.handleEntry(entry());
+                    return props.handleEntry(entry);
                   }}
-                </Key>
+                </For>
               </div>
             ) : (
               <div class={styles.subEntry}>
-                <Index each={props.subEntryPages}>
+                <For each={props.subEntryPages}>
                   {(entries, index) => (
                     <div>
                       <div class={styles.entry}>
                         <button
                           onClick={() =>
                             setExpandedPages((old) =>
-                              old.includes(index)
-                                ? old.filter((d) => d !== index)
-                                : [...old, index],
+                              old.includes(index())
+                                ? old.filter((d) => d !== index())
+                                : [...old, index()],
                             )
                           }
                           class={styles.expanderButton}
                         >
-                          <Expander expanded={props.expanded} /> [{index * props.pageSize}...
-                          {index * props.pageSize + props.pageSize - 1}]
+                          <Expander expanded={props.expanded} /> [{index() * props.pageSize}...
+                          {index() * props.pageSize + props.pageSize - 1}]
                         </button>
-                        <Show when={expandedPages().includes(index)}>
+                        <Show when={expandedPages().includes(index())}>
                           <div class={styles.subEntry}>
-                            <Key by={(entry) => entry.label} each={entries()}>
-                              {(entry) => props.handleEntry(entry())}
-                            </Key>
+                            <For each={entries}>{(entry) => props.handleEntry(entry)}</For>
                           </div>
                         </Show>
                       </div>
                     </div>
                   )}
-                </Index>
+                </For>
               </div>
             )
           ) : null}
@@ -182,6 +178,10 @@ export default function Explorer(props: ExplorerProps) {
       defaultExpanded: subDefaultExpanded,
     };
   };
+
+  createEffect(() => {
+    console.log("rerender", props.value);
+  });
 
   const subEntries = createMemo(
     on(
