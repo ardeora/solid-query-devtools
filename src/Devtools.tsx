@@ -643,6 +643,8 @@ const QueryDetails = () => {
     return { ...query, state: { ...query.state } };
   });
 
+  console.log("activeQueryFresh", activeQueryFresh());
+
   const activeQueryState = createSubscribeToQueryCache(
     queryCache,
     () => queryCache.getAll().find((query) => query.queryHash === selectedQueryHash())?.state,

@@ -82,10 +82,6 @@ export const DefaultRenderer: Renderer = (props) => {
   const styles = getStyles();
   const [expandedPages, setExpandedPages] = createSignal<number[]>([]);
 
-  createEffect(() => {
-    console.log("rerender", props.subEntries, props);
-  });
-
   return (
     <div class={styles.entry}>
       {props.subEntryPages.length ? (
@@ -103,7 +99,6 @@ export const DefaultRenderer: Renderer = (props) => {
               <div class={styles.subEntry}>
                 <For each={props.subEntries}>
                   {(entry) => {
-                    console.log("BLOOOOP");
                     return props.handleEntry(entry);
                   }}
                 </For>
@@ -178,10 +173,6 @@ export default function Explorer(props: ExplorerProps) {
       defaultExpanded: subDefaultExpanded,
     };
   };
-
-  createEffect(() => {
-    console.log("rerender", props.value);
-  });
 
   const subEntries = createMemo(
     on(
