@@ -26,12 +26,9 @@ const App: Component = () => {
       },
     ],
     queryFn: async () => {
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      return fetch("https://62b01cd2b0a980a2ef4a699c.mockapi.io/v1/users").then((res) =>
-        res.json(),
-      );
+      await new Promise((resolve) => setTimeout(resolve, 25));
+      return "yolo";
     },
-    refetchInterval: 1500,
   }));
 
   const bwl = createQuery(() => ({
@@ -62,7 +59,7 @@ const App: Component = () => {
 
   return (
     <>
-      <div class="yolo"></div>
+      <div class="yolo">Bloop</div>
       <SolidQueryDevtools />
     </>
   );

@@ -169,7 +169,10 @@ export default function Explorer(props: ExplorerProps) {
     const subDefaultExpanded =
       props.defaultExpanded === true ? { [sub.label]: true } : props.defaultExpanded?.[sub.label];
     return {
-      ...sub,
+      label: sub.label,
+      get value() {
+        return sub.value;
+      },
       defaultExpanded: subDefaultExpanded,
     };
   };
@@ -182,7 +185,9 @@ export default function Explorer(props: ExplorerProps) {
           return props.value.map((d, i) =>
             makeProperty({
               label: i.toString(),
-              value: d,
+              get value() {
+                return d;
+              },
             }),
           );
         } else if (
@@ -194,14 +199,18 @@ export default function Explorer(props: ExplorerProps) {
           return Array.from(props.value, (val, i) =>
             makeProperty({
               label: i.toString(),
-              value: val,
+              get value() {
+                return val;
+              },
             }),
           );
         } else if (typeof props.value === "object" && props.value !== null) {
           return Object.entries(props.value).map(([key, val]) =>
             makeProperty({
               label: key,
-              value: val,
+              get value() {
+                return val;
+              },
             }),
           );
         }

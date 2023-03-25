@@ -8,11 +8,18 @@ import {
   on,
   onCleanup,
   Show,
+  useContext,
 } from "solid-js";
-import { createStore } from "solid-js/store";
+import { createStore, produce, reconcile, unwrap } from "solid-js/store";
 import { css, cx } from "@emotion/css";
 import { tokens } from "./theme";
-import { Query, QueryCache, useQueryClient, onlineManager } from "@tanstack/solid-query";
+import {
+  Query,
+  QueryCache,
+  useQueryClient,
+  onlineManager,
+  QueryClient,
+} from "@tanstack/solid-query";
 import {
   getQueryStatusLabel,
   getQueryStatusColor,
@@ -23,19 +30,26 @@ import {
 } from "./utils";
 import { ArrowUp, ChevronDown, Offline, Search, Settings, Wifi } from "./icons";
 import Explorer from "./Explorer";
+import { DevtoolsQueryClientContext } from "./Context";
 
 const [selectedStatus, setSelectedStatus] = createSignal<ReturnType<
   typeof getQueryStatusLabel
 > | null>(null);
 const [selectedQueryHash, setSelectedQueryHash] = createSignal<string | null>(null);
 
-export const DevtoolsPanel: Component = () => {
-  const styles = getStyles();
-  const queryClient = useQueryClient();
-  const queryCache = queryClient.getQueryCache();
+interface DevtoolsPanelProps {
+  queryClient?: QueryClient;
+}
 
-  const queryCount = createSubscribeToQueryCache(queryCache, () => {
-    const curr = queryCache.getAll();
+export const DevtoolsPanel: Component<DevtoolsPanelProps> = (props) => {
+  const styles = getStyles();
+
+  const queryCache = createMemo(() => {
+    return useContext(DevtoolsQueryClientContext).getQueryCache();
+  });
+
+  const queryCount = createSubscribeToQueryCache((queryCache) => {
+    const curr = queryCache().getAll();
     const res: { [K in IQueryStatusLabel]?: number } = {};
     for (const label of queryStatusLabels) {
       res[label] = curr.filter((e) => getQueryStatusLabel(e) === label).length;
@@ -47,7 +61,7 @@ export const DevtoolsPanel: Component = () => {
     on(
       () => [queryCount(), selectedStatus()],
       () => {
-        const curr = queryCache.getAll();
+        const curr = queryCache().getAll();
         const status = selectedStatus();
         return status === null ? curr : curr.filter((e) => getQueryStatusLabel(e) === status);
       },
@@ -121,21 +135,17 @@ export const DevtoolsPanel: Component = () => {
 
 export const QueryRow: Component<{ query: Query }> = (props) => {
   const styles = getStyles();
-  const queryClient = useQueryClient();
-  const queryCache = queryClient.getQueryCache();
 
   const queryState = createSubscribeToQueryCache(
-    queryCache,
-    () =>
-      queryCache.find({
+    (queryCache) =>
+      queryCache().find({
         queryKey: props.query.queryKey,
       })?.state,
   );
 
   const isStale = createSubscribeToQueryCache(
-    queryCache,
-    () =>
-      queryCache
+    (queryCache) =>
+      queryCache()
         .find({
           queryKey: props.query.queryKey,
         })
@@ -143,9 +153,8 @@ export const QueryRow: Component<{ query: Query }> = (props) => {
   );
 
   const isDisabled = createSubscribeToQueryCache(
-    queryCache,
-    () =>
-      queryCache
+    (queryCache) =>
+      queryCache()
         .find({
           queryKey: props.query.queryKey,
         })
@@ -153,9 +162,8 @@ export const QueryRow: Component<{ query: Query }> = (props) => {
   );
 
   const observers = createSubscribeToQueryCache(
-    queryCache,
-    () =>
-      queryCache
+    (queryCache) =>
+      queryCache()
         .find({
           queryKey: props.query.queryKey,
         })
@@ -205,32 +213,39 @@ export const QueryRow: Component<{ query: Query }> = (props) => {
 };
 
 export const QueryStatusCount: Component = () => {
-  const queryClient = useQueryClient();
-  const queryCache = queryClient.getQueryCache();
-
   const stale = createSubscribeToQueryCache(
-    queryCache,
-    () => queryCache.getAll().filter((q) => getQueryStatusLabel(q) === "stale").length,
+    (queryCache) =>
+      queryCache()
+        .getAll()
+        .filter((q) => getQueryStatusLabel(q) === "stale").length,
   );
 
   const fresh = createSubscribeToQueryCache(
-    queryCache,
-    () => queryCache.getAll().filter((q) => getQueryStatusLabel(q) === "fresh").length,
+    (queryCache) =>
+      queryCache()
+        .getAll()
+        .filter((q) => getQueryStatusLabel(q) === "fresh").length,
   );
 
   const fetching = createSubscribeToQueryCache(
-    queryCache,
-    () => queryCache.getAll().filter((q) => getQueryStatusLabel(q) === "fetching").length,
+    (queryCache) =>
+      queryCache()
+        .getAll()
+        .filter((q) => getQueryStatusLabel(q) === "fetching").length,
   );
 
   const paused = createSubscribeToQueryCache(
-    queryCache,
-    () => queryCache.getAll().filter((q) => getQueryStatusLabel(q) === "paused").length,
+    (queryCache) =>
+      queryCache()
+        .getAll()
+        .filter((q) => getQueryStatusLabel(q) === "paused").length,
   );
 
   const inactive = createSubscribeToQueryCache(
-    queryCache,
-    () => queryCache.getAll().filter((q) => getQueryStatusLabel(q) === "inactive").length,
+    (queryCache) =>
+      queryCache()
+        .getAll()
+        .filter((q) => getQueryStatusLabel(q) === "inactive").length,
   );
 
   const styles = getStyles();
@@ -302,17 +317,20 @@ export const QueryStatus: Component<QueryStatusProps> = (props) => {
 };
 
 const createSubscribeToQueryCache = <T,>(
-  queryCache: QueryCache,
-  callback: () => Exclude<T, Function>,
+  callback: (queryCache: Accessor<QueryCache>) => Exclude<T, Function>,
 ): Accessor<T> => {
-  const [value, setValue] = createSignal<T>(callback());
+  const queryCache = createMemo(() => {
+    const client = useContext(DevtoolsQueryClientContext);
+    return client.getQueryCache();
+  });
+  const [value, setValue] = createSignal<T>(callback(queryCache));
 
-  const unsub = queryCache.subscribe(() => {
-    setValue(callback());
+  const unsub = queryCache().subscribe(() => {
+    setValue(callback(queryCache));
   });
 
   createEffect(() => {
-    setValue(callback());
+    setValue(callback(queryCache));
   });
 
   onCleanup(() => {
@@ -320,6 +338,27 @@ const createSubscribeToQueryCache = <T,>(
   });
 
   return value;
+};
+
+const createSubscribeToQueryCacheStore = <T extends object>(
+  queryCache: QueryCache,
+  callback: () => Exclude<T, Function>,
+): T => {
+  const [store, setStore] = createStore<T>(callback());
+
+  const unsub = queryCache.subscribe(() => {
+    setStore(reconcile(callback()));
+  });
+
+  createEffect(() => {
+    setStore(reconcile(callback()));
+  });
+
+  onCleanup(() => {
+    unsub();
+  });
+
+  return store;
 };
 
 const getStyles = () => {
@@ -629,51 +668,54 @@ const getStyles = () => {
 };
 
 const QueryDetails = () => {
-  const queryClient = useQueryClient();
-  const queryCache = queryClient.getQueryCache();
   const styles = getStyles();
 
-  const activeQuery = createSubscribeToQueryCache(queryCache, () =>
-    queryCache.getAll().find((query) => query.queryHash === selectedQueryHash()),
+  const activeQuery = createSubscribeToQueryCache((queryCache) =>
+    queryCache()
+      .getAll()
+      .find((query) => query.queryHash === selectedQueryHash()),
   );
 
-  const activeQueryFresh = createSubscribeToQueryCache(queryCache, () => {
-    const query = queryCache.getAll().find((query) => query.queryHash === selectedQueryHash());
-    if (!query) return undefined;
-    return { ...query, state: { ...query.state } };
+  const activeQueryFresh = createSubscribeToQueryCache((queryCache) => {
+    const query = queryCache()
+      .getAll()
+      .find((query) => query.queryHash === selectedQueryHash());
+    return JSON.parse(JSON.stringify(query)) as Query;
   });
 
-  console.log("activeQueryFresh", activeQueryFresh());
-
   const activeQueryState = createSubscribeToQueryCache(
-    queryCache,
-    () => queryCache.getAll().find((query) => query.queryHash === selectedQueryHash())?.state,
+    (queryCache) =>
+      queryCache()
+        .getAll()
+        .find((query) => query.queryHash === selectedQueryHash())?.state,
   );
 
   const activeQueryStateData = createSubscribeToQueryCache(
-    queryCache,
-    () => queryCache.getAll().find((query) => query.queryHash === selectedQueryHash())?.state.data,
+    (queryCache) =>
+      queryCache()
+        .getAll()
+        .find((query) => query.queryHash === selectedQueryHash())?.state.data,
   );
 
-  const statusLabel = createSubscribeToQueryCache(queryCache, () => {
-    const query = queryCache.getAll().find((query) => query.queryHash === selectedQueryHash());
+  const statusLabel = createSubscribeToQueryCache((queryCache) => {
+    const query = queryCache()
+      .getAll()
+      .find((query) => query.queryHash === selectedQueryHash());
     if (!query) return "inactive";
     return getQueryStatusLabel(query);
   });
 
   const isStale = createSubscribeToQueryCache(
-    queryCache,
-    () =>
-      queryCache
+    (queryCache) =>
+      queryCache()
         .getAll()
         .find((query) => query.queryHash === selectedQueryHash())
         ?.isStale() ?? false,
   );
 
   const observerCount = createSubscribeToQueryCache(
-    queryCache,
-    () =>
-      queryCache
+    (queryCache) =>
+      queryCache()
         .getAll()
         .find((query) => query.queryHash === selectedQueryHash())
         ?.getObserversCount() ?? 0,
@@ -777,13 +819,7 @@ const QueryDetails = () => {
             padding: "0.5rem",
           }}
         >
-          <Explorer
-            label="Query"
-            value={activeQueryFresh()}
-            defaultExpanded={{
-              queryKey: true,
-            }}
-          />
+          <Explorer label="Query" value={activeQueryFresh()} defaultExpanded={true} />
         </div>
       </div>
     </Show>
