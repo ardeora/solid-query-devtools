@@ -680,7 +680,14 @@ const QueryDetails = () => {
     const query = queryCache()
       .getAll()
       .find((query) => query.queryHash === selectedQueryHash());
-    return JSON.parse(JSON.stringify(query)) as Query;
+    return JSON.parse(
+      JSON.stringify(query, (key, value) => {
+        if (typeof value === "function") {
+          return value.toString();
+        }
+        return value;
+      }),
+    ) as Query;
   });
 
   const activeQueryState = createSubscribeToQueryCache(

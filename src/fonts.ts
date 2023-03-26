@@ -6,4 +6,3 @@ export const loadFonts = () => {
   link.rel = "stylesheet";
   document.head.appendChild(link);
 };
-loadFonts();
