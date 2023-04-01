@@ -26,6 +26,7 @@
   },
   "scripts": {
     "dev": "vite serve dev",
+    "build:dev": "tsc && vite build dev",
     "test": "echo \"test not setup\"",
     "build": "rollup -c",
     "prepublishOnly": "pnpm build",
@@ -35,8 +36,11 @@
   },
   "dependencies": {
     "@emotion/css": "^11.10.5",
+    "@solid-primitives/deep": "^0.0.102",
     "@solid-primitives/keyed": "^1.1.4",
+    "@tanstack/match-sorter-utils": "^8.8.4",
     "@tanstack/solid-query": "5.0.0-alpha.0",
+    "solid-transition-group": "^0.2.2",
     "superjson": "^1.12.1"
   },
   "peerDependencies": {

@@ -5,20 +5,25 @@ import {
   createMemo,
   createSignal,
   For,
+  from,
+  JSX,
   on,
   onCleanup,
   Show,
   useContext,
 } from "solid-js";
+import { rankItem } from "@tanstack/match-sorter-utils";
 import { createStore, produce, reconcile, unwrap } from "solid-js/store";
-import { css, cx } from "@emotion/css";
+import { css, cx, keyframes } from "@emotion/css";
 import { tokens } from "./theme";
+import superjson, { serialize } from "superjson";
 import {
   Query,
   QueryCache,
   useQueryClient,
   onlineManager,
   QueryClient,
+  QueryState,
 } from "@tanstack/solid-query";
 import {
   getQueryStatusLabel,
@@ -27,22 +32,51 @@ import {
   IQueryStatusLabel,
   displayValue,
   getQueryStatusColorByLabel,
+  sortFns,
 } from "./utils";
-import { ArrowUp, ChevronDown, Offline, Search, Settings, Wifi } from "./icons";
+import { ArrowDown, ArrowUp, ChevronDown, Offline, Search, Settings, Wifi } from "./icons";
 import Explorer from "./Explorer";
 import { DevtoolsQueryClientContext } from "./Context";
+import { TransitionGroup } from "solid-transition-group";
+import { Key } from "@solid-primitives/keyed";
+import { deepTrack } from "@solid-primitives/deep";
 
-const [selectedStatus, setSelectedStatus] = createSignal<ReturnType<
-  typeof getQueryStatusLabel
-> | null>(null);
-const [selectedQueryHash, setSelectedQueryHash] = createSignal<string | null>(null);
+interface DevToolsErrorType {
+  /**
+   * The name of the error.
+   */
+  name: string;
+  /**
+   * How the error is initialized.
+   */
+  initializer: (query: Query) => Error;
+}
 
 interface DevtoolsPanelProps {
   queryClient?: QueryClient;
 }
 
+interface QueryStatusProps {
+  label: string;
+  color: "green" | "yellow" | "gray" | "blue" | "purple";
+  count: number;
+}
+
+const [selectedQueryHash, setSelectedQueryHash] = createSignal<string | null>(null);
+
 export const DevtoolsPanel: Component<DevtoolsPanelProps> = (props) => {
   const styles = getStyles();
+
+  const [open, setOpen] = createSignal(false);
+
+  const [devtoolsHeight, setDevtoolsHeight] = createSignal(500);
+  const [isResizing, setIsResizing] = createSignal(false);
+
+  const [filter, setFilter] = createSignal("");
+  const [sort, setSort] = createSignal(Object.keys(sortFns)[0]);
+  const [sortOrder, setSortOrder] = createSignal<1 | -1>(1);
+
+  const sortFn = createMemo(() => sortFns[sort() as string]);
 
   const queryCache = createMemo(() => {
     return useContext(DevtoolsQueryClientContext).getQueryCache();
@@ -59,77 +93,179 @@ export const DevtoolsPanel: Component<DevtoolsPanelProps> = (props) => {
 
   const queries = createMemo(
     on(
-      () => [queryCount(), selectedStatus()],
+      () => [queryCount(), filter(), sort(), sortOrder()],
       () => {
         const curr = queryCache().getAll();
-        const status = selectedStatus();
-        return status === null ? curr : curr.filter((e) => getQueryStatusLabel(e) === status);
+
+        const filtered = filter()
+          ? curr.filter((item) => rankItem(item.queryHash, filter()).passed)
+          : [...curr];
+
+        const sorted = sortFn() ? filtered.sort((a, b) => sortFn()(a, b) * sortOrder()) : filtered;
+        return sorted;
       },
     ),
   );
 
   const [offline, setOffline] = createSignal(false);
 
-  return (
-    <aside class={styles.panel}>
-      <div class={styles.queriesContainer}>
-        <div class={styles.row}>
-          <button>
-            <span class={styles.tanstackLogo}>TANSTACK</span>
-            <span class={styles.solidQueryLogo}>Solid Query v5</span>
-          </button>
-          <QueryStatusCount />
-        </div>
-        <div class={styles.row}>
-          <div class={styles.filtersContainer}>
-            <div class={styles.filterInput}>
-              <Search />
-              <input type="text" placeholder="Filter" />
-            </div>
-            <div class={styles.filterSelect}>
-              <select>
-                <option>Sort by status</option>
-                <option>Sort by query hash</option>
-                <option>Sort by last updated</option>
-              </select>
-              <ChevronDown />
-            </div>
-            <button>
-              <span>Asc</span>
-              <ArrowUp />
-            </button>
-          </div>
+  const handleDragStart: JSX.EventHandler<HTMLDivElement, MouseEvent> = (event) => {
+    console.log(event.currentTarget);
+    // if (!panelElement) return
+    // if (startEvent.button !== 0) return // Only allow left click for drag
+    // const isVertical = isVerticalSide(panelPosition)
+    const panelElement = event.currentTarget.parentElement;
+    if (!panelElement) return;
+    console.log(panelElement);
+    setIsResizing(true);
+    const { height, width } = panelElement.getBoundingClientRect();
+    const startX = event.clientX;
+    const startY = event.clientY;
+    console.log(startX, startY);
+    let newSize = 0;
 
-          <div class={styles.actionsContainer}>
-            <button
-              onClick={() => {
-                if (offline()) {
-                  onlineManager.setOnline(undefined);
-                  setOffline(false);
-                  window.dispatchEvent(new Event("online"));
-                } else {
-                  onlineManager.setOnline(false);
-                  setOffline(true);
-                }
-              }}
-            >
-              {offline() ? <Offline /> : <Wifi />}
-            </button>
-            <button>
-              <Settings />
+    const runDrag = (moveEvent: MouseEvent) => {
+      // prevent mouse selecting stuff with mouse drag
+      moveEvent.preventDefault();
+      // calculate the correct size based on mouse position and current panel position
+      // hint: it is different formula for the opposite sides
+      newSize = height + startY - moveEvent.clientY;
+      setDevtoolsHeight(Math.round(newSize));
+    };
+
+    const unsub = () => {
+      if (isResizing()) {
+        setIsResizing(false);
+      }
+      document.removeEventListener("mousemove", runDrag, false);
+      document.removeEventListener("mouseUp", unsub, false);
+    };
+
+    document.addEventListener("mousemove", runDrag, false);
+    document.addEventListener("mouseup", unsub, false);
+  };
+
+  return (
+    <div
+      class={css`
+        & .SQD-panel-exit-active,
+        & .SQD-panel-enter-active {
+          transition: opacity 0.3s, transform 0.3s;
+        }
+
+        & .SQD-panel-exit-to,
+        & .SQD-panel-enter {
+          transform: translateY(${devtoolsHeight()}px);
+        }
+
+        & .SQD-button-exit-active,
+        & .SQD-button-enter-active {
+          transition: opacity 0.3s, transform 0.3s;
+        }
+
+        & .SQD-button-exit-to,
+        & .SQD-button-enter {
+          opacity: 0;
+        }
+      `}
+    >
+      <TransitionGroup name="SQD-panel">
+        <Show when={open()}>
+          <aside class={styles.panel} style={{ height: `${devtoolsHeight()}px` }}>
+            <div class={styles.dragHandle} onMouseDown={handleDragStart}></div>
+            <div class={styles.queriesContainer}>
+              <div
+                class={cx(
+                  styles.row,
+                  css`
+                    gap: 2.5rem;
+                  `,
+                )}
+              >
+                <button class={styles.logo} onClick={() => setOpen(false)}>
+                  <span class={styles.tanstackLogo}>TANSTACK</span>
+                  <span class={styles.solidQueryLogo}>Solid Query v5</span>
+                </button>
+                <QueryStatusCount />
+              </div>
+              <div class={styles.row}>
+                <div class={styles.filtersContainer}>
+                  <div class={styles.filterInput}>
+                    <Search />
+                    <input
+                      type="text"
+                      placeholder="Filter"
+                      onInput={(e) => setFilter(e.currentTarget.value)}
+                      value={filter()}
+                    />
+                  </div>
+                  <div class={styles.filterSelect}>
+                    <select value={sort()} onChange={(e) => setSort(e.currentTarget.value)}>
+                      {Object.keys(sortFns).map((key) => (
+                        <option value={key}>Sort by {key}</option>
+                      ))}
+                    </select>
+                    <ChevronDown />
+                  </div>
+                  <button
+                    onClick={() => {
+                      setSortOrder((prev) => (prev === 1 ? -1 : 1));
+                    }}
+                  >
+                    <Show when={sortOrder() === 1}>
+                      <span>Asc</span>
+                      <ArrowUp />
+                    </Show>
+                    <Show when={sortOrder() === -1}>
+                      <span>Desc</span>
+                      <ArrowDown />
+                    </Show>
+                  </button>
+                </div>
+
+                <div class={styles.actionsContainer}>
+                  <button
+                    onClick={() => {
+                      if (offline()) {
+                        onlineManager.setOnline(undefined);
+                        setOffline(false);
+                        window.dispatchEvent(new Event("online"));
+                      } else {
+                        onlineManager.setOnline(false);
+                        setOffline(true);
+                      }
+                    }}
+                  >
+                    {offline() ? <Offline /> : <Wifi />}
+                  </button>
+                  <button>
+                    <Settings />
+                  </button>
+                </div>
+              </div>
+              <div class={styles.overflowQueryContainer}>
+                <div>
+                  <For each={queries()}>{(query) => <QueryRow query={query} />}</For>
+                </div>
+              </div>
+            </div>
+            <Show when={selectedQueryHash()}>
+              <QueryDetails />
+            </Show>
+          </aside>
+        </Show>
+      </TransitionGroup>
+      <TransitionGroup name="SQD-button">
+        <Show when={!open()}>
+          <div class={styles.devtoolsBtn}>
+            <div></div>
+            <button onClick={() => setOpen(true)}>
+              <img src="https://avatars.githubusercontent.com/u/72518640"></img>
             </button>
           </div>
-        </div>
-        <div class={styles.overflowQueryContainer}>
-          <div>
-            <For each={queries()}>{(query) => <QueryRow query={query} />}</For>
-          </div>
-        </div>
-      </div>
-      <Show when={selectedQueryHash()}>
-        <QueryDetails />
-      </Show>
-    </aside>
+        </Show>
+      </TransitionGroup>
+    </div>
   );
 };
 
@@ -170,6 +306,14 @@ export const QueryRow: Component<{ query: Query }> = (props) => {
         ?.getObserversCount() ?? 0,
   );
 
+  const color = createMemo(() =>
+    getQueryStatusColor({
+      queryState: queryState()!,
+      observerCount: observers(),
+      isStale: isStale(),
+    }),
+  );
+
   return (
     <Show when={queryState()}>
       <button
@@ -186,27 +330,23 @@ export const QueryRow: Component<{ query: Query }> = (props) => {
         <div
           class={cx(
             "SQDObserverCount",
-            css`
-              background-color: ${tokens.colors[
-                getQueryStatusColor({
-                  queryState: queryState()!,
-                  observerCount: observers(),
-                  isStale: isStale(),
-                })
-              ][900]};
-              color: ${tokens.colors[
-                getQueryStatusColor({
-                  queryState: queryState()!,
-                  observerCount: observers(),
-                  isStale: isStale(),
-                })
-              ][300]};
-            `,
+            color() === "gray"
+              ? css`
+                  background-color: ${tokens.colors[color()][700]};
+                  color: ${tokens.colors[color()][300]};
+                `
+              : css`
+                  background-color: ${tokens.colors[color()][900]};
+                  color: ${tokens.colors[color()][300]} !important;
+                `,
           )}
         >
           {observers()}
         </div>
         <code class="SQDQueryHash">{props.query.queryHash}</code>
+        <Show when={isDisabled()}>
+          <div class="SQDQueryDisabled">disabled</div>
+        </Show>
       </button>
     </Show>
   );
@@ -261,35 +401,11 @@ export const QueryStatusCount: Component = () => {
   );
 };
 
-interface QueryStatusProps {
-  label: string;
-  color: "green" | "yellow" | "gray" | "blue" | "purple";
-  count: number;
-}
-
 export const QueryStatus: Component<QueryStatusProps> = (props) => {
   const styles = getStyles();
 
   return (
-    <button
-      onClick={() =>
-        setSelectedStatus((prev) =>
-          prev === props.label.toLowerCase() ? null : (props.label.toLowerCase() as any),
-        )
-      }
-      class={cx(
-        styles.queryStatusTag,
-        selectedStatus() === props.label.toLowerCase()
-          ? props.color === "gray"
-            ? css`
-                outline: ${tokens.colors[props.color][600]} 2px solid;
-              `
-            : css`
-                outline: ${tokens.colors[props.color][800]} 2px solid;
-              `
-          : null,
-      )}
-    >
+    <button class={cx(styles.queryStatusTag)}>
       <span
         class={css`
           width: ${tokens.size[2]};
@@ -302,17 +418,299 @@ export const QueryStatus: Component<QueryStatusProps> = (props) => {
       <span
         class={cx(
           styles.queryStatusCount,
-          props.count > 0 &&
-            props.color !== "gray" &&
-            css`
-              background-color: ${tokens.colors[props.color][900]};
-              color: ${tokens.colors[props.color][300]};
-            `,
+          props.count > 0 && props.color !== "gray"
+            ? css`
+                background-color: ${tokens.colors[props.color][900]};
+                color: ${tokens.colors[props.color][300]} !important;
+              `
+            : css`
+                color: ${tokens.colors["gray"][400]} !important;
+              `,
         )}
       >
         {props.count}
       </span>
     </button>
+  );
+};
+
+const QueryDetails = () => {
+  const styles = getStyles();
+  const queryClient = useContext(DevtoolsQueryClientContext);
+
+  const activeQuery = createSubscribeToQueryCache((queryCache) =>
+    queryCache()
+      .getAll()
+      .find((query) => query.queryHash === selectedQueryHash()),
+  );
+
+  const activeQueryFresh = createSubscribeToQueryCache((queryCache) => {
+    const query = queryCache()
+      .getAll()
+      .find((query) => query.queryHash === selectedQueryHash());
+    return JSON.parse(
+      JSON.stringify(query, (key, value) => {
+        if (value instanceof Map) {
+          return Object.fromEntries(value);
+        } else if (value instanceof Set) {
+          return Array.from(value);
+        }
+        return value;
+      }),
+    ) as Query;
+  });
+
+  const activeQueryState = createSubscribeToQueryCache(
+    (queryCache) =>
+      queryCache()
+        .getAll()
+        .find((query) => query.queryHash === selectedQueryHash())?.state,
+  );
+
+  const activeQueryStateData = createSubscribeToQueryCache((queryCache) => {
+    return superjson.deserialize(
+      superjson.serialize(
+        queryCache()
+          .getAll()
+          .find((query) => query.queryHash === selectedQueryHash())?.state.data,
+      ),
+    );
+  });
+
+  const statusLabel = createSubscribeToQueryCache((queryCache) => {
+    const query = queryCache()
+      .getAll()
+      .find((query) => query.queryHash === selectedQueryHash());
+    if (!query) return "inactive";
+    return getQueryStatusLabel(query);
+  });
+
+  const queryStatus = createSubscribeToQueryCache((queryCache) => {
+    const query = queryCache()
+      .getAll()
+      .find((query) => query.queryHash === selectedQueryHash());
+    if (!query) return "pending";
+    return query.state.status;
+  });
+
+  const isStale = createSubscribeToQueryCache(
+    (queryCache) =>
+      queryCache()
+        .getAll()
+        .find((query) => query.queryHash === selectedQueryHash())
+        ?.isStale() ?? false,
+  );
+
+  const observerCount = createSubscribeToQueryCache(
+    (queryCache) =>
+      queryCache()
+        .getAll()
+        .find((query) => query.queryHash === selectedQueryHash())
+        ?.getObserversCount() ?? 0,
+  );
+
+  const queryCache = createMemo(() => {
+    const client = useContext(DevtoolsQueryClientContext);
+    return client.getQueryCache();
+  });
+
+  const color = createMemo(() => getQueryStatusColorByLabel(statusLabel()));
+
+  const handleRefetch = () => {
+    const promise = activeQuery()?.fetch();
+    promise?.catch(() => {});
+  };
+
+  const triggerError = (errorType?: DevToolsErrorType) => {
+    const error =
+      errorType?.initializer(activeQuery()!) ?? new Error("Unknown error from devtools");
+
+    const __previousQueryOptions = activeQuery()!.options;
+
+    activeQuery()!.setState({
+      status: "error",
+      error,
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
+      fetchMeta: {
+        ...activeQuery()!.state.fetchMeta,
+        __previousQueryOptions,
+      } as any,
+    } as QueryState<unknown, Error>);
+  };
+
+  const restoreQueryAfterLoadingOrError = () => {
+    activeQuery()?.fetch((activeQuery()?.state.fetchMeta as any).__previousQueryOptions, {
+      // Make sure this fetch will cancel the previous one
+      cancelRefetch: true,
+    });
+  };
+
+  return (
+    <Show when={activeQuery() && activeQueryState()}>
+      <div class={styles.detailsContainer}>
+        <div class={styles.detailsHeader}>Query Details</div>
+        <div class={styles.detailsBody}>
+          <div>
+            <code>
+              <pre>{displayValue(activeQuery()!.queryKey, true)}</pre>
+            </code>
+            <span
+              class={cx(
+                styles.queryDetailsStatus,
+                color() === "gray"
+                  ? css`
+                      background-color: ${tokens.colors[color()][700]};
+                      color: ${tokens.colors[color()][300]};
+                      border-color: ${tokens.colors[color()][600]};
+                    `
+                  : css`
+                      background-color: ${tokens.colors[color()][900]};
+                      color: ${tokens.colors[color()][300]};
+                      border-color: ${tokens.colors[color()][600]};
+                    `,
+              )}
+            >
+              {statusLabel()}
+            </span>
+          </div>
+          <div>
+            <span>Observers:</span>
+            <span>{observerCount()}</span>
+          </div>
+          <div>
+            <span>Last Updated:</span>
+            <span>{new Date(activeQueryState()!.dataUpdatedAt).toLocaleTimeString()}</span>
+          </div>
+        </div>
+        <div class={styles.detailsHeader}>Actions</div>
+        <div class={styles.actionsBody}>
+          <button
+            class={css`
+              color: ${tokens.colors.blue[400]};
+            `}
+            onClick={handleRefetch}
+            disabled={statusLabel() === "fetching"}
+          >
+            <span
+              class={css`
+                background-color: ${tokens.colors.blue[400]};
+              `}
+            ></span>
+            Refetch
+          </button>
+          <button
+            class={css`
+              color: ${tokens.colors.yellow[400]};
+            `}
+            onClick={() => queryClient.invalidateQueries(activeQuery())}
+          >
+            <span
+              class={css`
+                background-color: ${tokens.colors.yellow[400]};
+              `}
+            ></span>
+            Invalidate
+          </button>
+          <button
+            class={css`
+              color: ${tokens.colors.gray[300]};
+            `}
+            onClick={() => queryClient.resetQueries(activeQuery())}
+          >
+            <span
+              class={css`
+                background-color: ${tokens.colors.gray[400]};
+              `}
+            ></span>
+            Reset
+          </button>
+          <button
+            class={css`
+              color: ${tokens.colors.cyan[400]};
+            `}
+            onClick={() => {
+              if (activeQuery()?.state.data === undefined) {
+                restoreQueryAfterLoadingOrError();
+              } else {
+                const activeQueryVal = activeQuery();
+                if (!activeQueryVal) return;
+                const __previousQueryOptions = activeQueryVal.options;
+                // Trigger a fetch in order to trigger suspense as well.
+                activeQueryVal.fetch({
+                  ...__previousQueryOptions,
+                  queryFn: () => {
+                    return new Promise(() => {
+                      // Never resolve
+                    });
+                  },
+                  gcTime: -1,
+                });
+                activeQueryVal.setState({
+                  data: undefined,
+                  status: "pending",
+                  // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
+                  fetchMeta: {
+                    ...activeQueryVal.state.fetchMeta,
+                    __previousQueryOptions,
+                  } as any,
+                } as QueryState<unknown, Error>);
+              }
+            }}
+          >
+            <span
+              class={css`
+                background-color: ${tokens.colors.cyan[400]};
+              `}
+            ></span>
+            {statusLabel() === "fetching" ? "Restore" : "Trigger"} Loading
+          </button>
+          <button
+            class={css`
+              color: ${tokens.colors.red[400]};
+            `}
+            onClick={() => {
+              if (!activeQuery()!.state.error) {
+                triggerError();
+              } else {
+                queryClient.resetQueries(activeQuery());
+              }
+            }}
+          >
+            <span
+              class={css`
+                background-color: ${tokens.colors.red[400]};
+              `}
+            ></span>
+            {queryStatus() === "error" ? "Restore" : "Trigger"} Error
+          </button>
+        </div>
+        <div class={styles.detailsHeader}>Data Explorer</div>
+        <div
+          style={{
+            padding: "0.5rem",
+          }}
+        >
+          <Explorer
+            label="Data"
+            defaultExpanded={["Data"]}
+            value={activeQueryStateData()}
+            copyable
+          />
+        </div>
+        <div class={styles.detailsHeader}>Query Explorer</div>
+        <div
+          style={{
+            padding: "0.5rem",
+          }}
+        >
+          <Explorer
+            label="Query"
+            defaultExpanded={["Query", "queryKey"]}
+            value={activeQueryFresh()}
+          />
+        </div>
+      </div>
+    </Show>
   );
 };
 
@@ -340,40 +738,66 @@ const createSubscribeToQueryCache = <T,>(
   return value;
 };
 
-const createSubscribeToQueryCacheStore = <T extends object>(
-  queryCache: QueryCache,
-  callback: () => Exclude<T, Function>,
-): T => {
-  const [store, setStore] = createStore<T>(callback());
-
-  const unsub = queryCache.subscribe(() => {
-    setStore(reconcile(callback()));
-  });
-
-  createEffect(() => {
-    setStore(reconcile(callback()));
-  });
-
-  onCleanup(() => {
-    unsub();
-  });
-
-  return store;
-};
-
 const getStyles = () => {
-  const { colors, font, size } = tokens;
+  const { colors, font, size, alpha, shadow } = tokens;
 
   return {
+    devtoolsBtn: css`
+      position: fixed;
+      bottom: 16px;
+      left: 16px;
+      padding: 4px;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 9999px;
+      box-shadow: ${shadow.md()};
+      overflow: hidden;
+
+      & div {
+        position: absolute;
+        top: -8px;
+        left: -8px;
+        right: -8px;
+        bottom: -8px;
+        border-radius: 9999px;
+        background-image: url("https://avatars.githubusercontent.com/u/72518640");
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        filter: blur(6px) saturate(1.2) contrast(1.1);
+      }
+
+      & button {
+        position: relative;
+        z-index: 1;
+        padding: 0;
+        border-radius: 9999px;
+        background-color: transparent;
+        border: none;
+        height: 48px;
+        width: 48px;
+        overflow: hidden;
+        cursor: pointer;
+
+        & img {
+          height: 100%;
+          width: 100%;
+          object-fit: cover;
+        }
+      }
+    `,
     panel: css`
       position: fixed;
       bottom: 0;
       right: 0;
       left: 0;
-      height: 500px;
       background-color: ${colors.darkGray[800]};
       border-top: ${colors.darkGray[300]} 1px solid;
       display: flex;
+      max-height: 90%;
+      min-height: 3.5rem;
       gap: ${tokens.size[0.5]};
       & * {
         font-family: "Inter", sans-serif;
@@ -386,6 +810,18 @@ const getStyles = () => {
       background-color: ${colors.darkGray[700]};
       display: flex;
       flex-direction: column;
+    `,
+    dragHandle: css`
+      width: 100%;
+      height: ${tokens.size[1]};
+      cursor: ns-resize;
+      position: absolute;
+      top: 0;
+      transition: background-color 0.125s ease;
+      &:hover {
+        background-color: ${colors.darkGray[200]};
+      }
+      z-index: 2;
     `,
     row: css`
       display: flex;
@@ -400,6 +836,12 @@ const getStyles = () => {
         border: none;
         display: flex;
         flex-direction: column;
+      }
+    `,
+    logo: css`
+      cursor: pointer;
+      &:hover {
+        opacity: 0.7;
       }
     `,
     tanstackLogo: css`
@@ -422,7 +864,6 @@ const getStyles = () => {
     `,
     queryStatusTag: css`
       display: flex;
-      cursor: pointer;
       gap: ${tokens.size[1.5]};
       background: ${colors.darkGray[500]};
       border-radius: ${tokens.border.radius.md};
@@ -451,6 +892,7 @@ const getStyles = () => {
       display: flex;
       gap: ${tokens.size[2.5]};
       & > button {
+        cursor: pointer;
         padding: ${tokens.size[1.5]} ${tokens.size[2.5]};
         padding-right: ${tokens.size[1.5]};
         border-radius: ${tokens.border.radius.md};
@@ -536,6 +978,10 @@ const getStyles = () => {
         gap: ${tokens.size[1.5]};
         max-width: 160px;
         border: 1px solid ${colors.darkGray[200]};
+        cursor: pointer;
+        &:hover {
+          background-color: ${colors.darkGray[500]};
+        }
         & svg {
           width: ${tokens.size[4]};
           height: ${tokens.size[4]};
@@ -557,10 +1003,15 @@ const getStyles = () => {
       background-color: inherit;
       border: none;
       cursor: pointer;
+
+      &:hover .SQDQueryHash {
+        background-color: ${colors.darkGray[600]};
+      }
+
       & .SQDObserverCount {
         user-select: none;
         width: ${tokens.size[8]};
-        height: ${tokens.size[8]};
+        align-self: stretch !important;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -573,23 +1024,31 @@ const getStyles = () => {
         font-size: ${font.size.sm};
         display: flex;
         align-items: center;
-        height: ${tokens.size[8]};
+        min-height: ${tokens.size[8]};
         flex: 1;
-        padding: 0 ${tokens.size[2]};
-        font-family: "Menlo", "Fira Code", monospace;
+        padding: ${tokens.size[1]} ${tokens.size[2]};
+        font-family: "Menlo", "Fira Code", monospace !important;
         border-bottom: 1px solid ${colors.darkGray[400]};
+        text-align: left;
+        text-overflow: clip;
+      }
 
-        &:hover {
-          background-color: ${colors.darkGray[600]};
-        }
+      & .SQDQueryDisabled {
+        align-self: stretch;
+        align-self: stretch !important;
+        display: flex;
+        align-items: center;
+        padding: 0 ${tokens.size[3]};
+        color: ${colors.gray[300]};
+        background-color: ${colors.darkGray[600]};
+        border-bottom: 1px solid ${colors.darkGray[400]};
       }
     `,
     detailsContainer: css`
-      flex: 1 1 550px;
+      flex: 1 1 700px;
       background-color: ${colors.darkGray[700]};
       display: flex;
       flex-direction: column;
-      max-width: 600px;
       overflow-y: auto;
       display: flex;
     `,
@@ -623,7 +1082,7 @@ const getStyles = () => {
       }
 
       & pre {
-        font-family: "Menlo", "Fira Code", monospace;
+        font-family: "Menlo", "Fira Code", monospace !important;
         margin: 0;
         font-size: ${font.size.sm};
         line-height: ${font.lineHeight.sm};
@@ -657,6 +1116,11 @@ const getStyles = () => {
           background-color: ${colors.darkGray[500]};
         }
 
+        &:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+
         & > span {
           width: ${size[2]};
           height: ${size[2]};
@@ -665,170 +1129,4 @@ const getStyles = () => {
       }
     `,
   };
-};
-
-const QueryDetails = () => {
-  const styles = getStyles();
-
-  const activeQuery = createSubscribeToQueryCache((queryCache) =>
-    queryCache()
-      .getAll()
-      .find((query) => query.queryHash === selectedQueryHash()),
-  );
-
-  const activeQueryFresh = createSubscribeToQueryCache((queryCache) => {
-    const query = queryCache()
-      .getAll()
-      .find((query) => query.queryHash === selectedQueryHash());
-    return JSON.parse(
-      JSON.stringify(query, (key, value) => {
-        if (typeof value === "function") {
-          return value.toString();
-        }
-        return value;
-      }),
-    ) as Query;
-  });
-
-  const activeQueryState = createSubscribeToQueryCache(
-    (queryCache) =>
-      queryCache()
-        .getAll()
-        .find((query) => query.queryHash === selectedQueryHash())?.state,
-  );
-
-  const activeQueryStateData = createSubscribeToQueryCache(
-    (queryCache) =>
-      queryCache()
-        .getAll()
-        .find((query) => query.queryHash === selectedQueryHash())?.state.data,
-  );
-
-  const statusLabel = createSubscribeToQueryCache((queryCache) => {
-    const query = queryCache()
-      .getAll()
-      .find((query) => query.queryHash === selectedQueryHash());
-    if (!query) return "inactive";
-    return getQueryStatusLabel(query);
-  });
-
-  const isStale = createSubscribeToQueryCache(
-    (queryCache) =>
-      queryCache()
-        .getAll()
-        .find((query) => query.queryHash === selectedQueryHash())
-        ?.isStale() ?? false,
-  );
-
-  const observerCount = createSubscribeToQueryCache(
-    (queryCache) =>
-      queryCache()
-        .getAll()
-        .find((query) => query.queryHash === selectedQueryHash())
-        ?.getObserversCount() ?? 0,
-  );
-
-  return (
-    <Show when={activeQuery() && activeQueryState()}>
-      <div class={styles.detailsContainer}>
-        <div class={styles.detailsHeader}>Query Details</div>
-        <div class={styles.detailsBody}>
-          <div>
-            <code>
-              <pre>{displayValue(activeQuery()!.queryKey, true)}</pre>
-            </code>
-            <span
-              class={cx(
-                styles.queryDetailsStatus,
-                css`
-                  background-color: ${tokens.colors[
-                    getQueryStatusColorByLabel(statusLabel())
-                  ][900]};
-                  color: ${tokens.colors[getQueryStatusColorByLabel(statusLabel())][300]};
-                  border-color: ${tokens.colors[getQueryStatusColorByLabel(statusLabel())][600]};
-                `,
-              )}
-            >
-              {statusLabel()}
-            </span>
-          </div>
-          <div>
-            <span>Observers:</span>
-            <span>{observerCount()}</span>
-          </div>
-          <div>
-            <span>Last Updated:</span>
-            <span>{new Date(activeQueryState()!.dataUpdatedAt).toLocaleTimeString()}</span>
-          </div>
-        </div>
-        <div class={styles.detailsHeader}>Actions</div>
-        <div class={styles.actionsBody}>
-          <button
-            class={css`
-              color: ${tokens.colors.blue[400]};
-            `}
-          >
-            <span
-              class={css`
-                background-color: ${tokens.colors.blue[400]};
-              `}
-            ></span>
-            Refetch
-          </button>
-          <button
-            class={css`
-              color: ${tokens.colors.yellow[400]};
-            `}
-          >
-            <span
-              class={css`
-                background-color: ${tokens.colors.yellow[400]};
-              `}
-            ></span>
-            Invalidate
-          </button>
-          <button
-            class={css`
-              color: ${tokens.colors.gray[300]};
-            `}
-          >
-            <span
-              class={css`
-                background-color: ${tokens.colors.gray[400]};
-              `}
-            ></span>
-            Reset
-          </button>
-          <button
-            class={css`
-              color: ${tokens.colors.red[400]};
-            `}
-          >
-            <span
-              class={css`
-                background-color: ${tokens.colors.red[400]};
-              `}
-            ></span>
-            Remove
-          </button>
-        </div>
-        <div class={styles.detailsHeader}>Data Explorer</div>
-        <div
-          style={{
-            padding: "0.5rem",
-          }}
-        >
-          {/* <Explorer label="Data" value={activeQueryStateData()} defaultExpanded={{}} copyable /> */}
-        </div>
-        <div class={styles.detailsHeader}>Query Explorer</div>
-        <div
-          style={{
-            padding: "0.5rem",
-          }}
-        >
-          <Explorer label="Query" value={activeQueryFresh()} defaultExpanded={true} />
-        </div>
-      </div>
-    </Show>
-  );
 };

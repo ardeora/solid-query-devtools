@@ -42,6 +42,20 @@ export function ArrowUp() {
   );
 }
 
+export function ArrowDown() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path
+        d="M8 2.66667V13.3333M8 13.3333L4 9.33333M8 13.3333L12 9.33333"
+        stroke="#98A2B3"
+        stroke-width="1.66667"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      />
+    </svg>
+  );
+}
+
 export function Wifi() {
   return (
     <svg
