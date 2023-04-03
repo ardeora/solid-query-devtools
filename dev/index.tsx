@@ -1,9 +1,9 @@
-import { render } from "solid-js/web";
-import { QueryClient, QueryClientProvider } from "@tanstack/solid-query";
-import "./styles.css";
-import App from "./App";
+import { render } from 'solid-js/web'
+import { QueryClient, QueryClientProvider } from '@tanstack/solid-query'
+import './styles.css'
+import App from './App'
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient()
 
 render(
   () => (
@@ -11,5 +11,5 @@ render(
       <App />
     </QueryClientProvider>
   ),
-  document.getElementById("root")!,
-);
+  document.getElementById('root')!,
+)

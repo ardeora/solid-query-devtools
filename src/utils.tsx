@@ -1,51 +1,51 @@
-import type { Query } from "@tanstack/solid-query";
-import SuperJSON from "superjson";
+import type { Query } from '@tanstack/solid-query'
+import SuperJSON from 'superjson'
 
 export function getQueryStatusLabel(query: Query) {
-  return query.state.fetchStatus === "fetching"
-    ? "fetching"
+  return query.state.fetchStatus === 'fetching'
+    ? 'fetching'
     : !query.getObserversCount()
-    ? "inactive"
-    : query.state.fetchStatus === "paused"
-    ? "paused"
+    ? 'inactive'
+    : query.state.fetchStatus === 'paused'
+    ? 'paused'
     : query.isStale()
-    ? "stale"
-    : "fresh";
+    ? 'stale'
+    : 'fresh'
 }
 
-export const queryStatusLabels = ["fresh", "stale", "paused", "inactive", "fetching"] as const;
-export type IQueryStatusLabel = typeof queryStatusLabels[number];
+export const queryStatusLabels = ['fresh', 'stale', 'paused', 'inactive', 'fetching'] as const
+export type IQueryStatusLabel = (typeof queryStatusLabels)[number]
 
 export function getQueryStatusColor({
   queryState,
   observerCount,
   isStale,
 }: {
-  queryState: Query["state"];
-  observerCount: number;
-  isStale: boolean;
+  queryState: Query['state']
+  observerCount: number
+  isStale: boolean
 }) {
-  return queryState.fetchStatus === "fetching"
-    ? "blue"
+  return queryState.fetchStatus === 'fetching'
+    ? 'blue'
     : !observerCount
-    ? "gray"
-    : queryState.fetchStatus === "paused"
-    ? "purple"
+    ? 'gray'
+    : queryState.fetchStatus === 'paused'
+    ? 'purple'
     : isStale
-    ? "yellow"
-    : "green";
+    ? 'yellow'
+    : 'green'
 }
 
 export function getQueryStatusColorByLabel(label: IQueryStatusLabel) {
-  return label === "fresh"
-    ? "green"
-    : label === "stale"
-    ? "yellow"
-    : label === "paused"
-    ? "purple"
-    : label === "inactive"
-    ? "gray"
-    : "blue";
+  return label === 'fresh'
+    ? 'green'
+    : label === 'stale'
+    ? 'yellow'
+    : label === 'paused'
+    ? 'purple'
+    : label === 'inactive'
+    ? 'gray'
+    : 'blue'
 }
 
 /**
@@ -54,31 +54,31 @@ export function getQueryStatusColorByLabel(label: IQueryStatusLabel) {
  * @param {boolean} beautify Formats json to multiline
  */
 export const displayValue = (value: unknown, beautify: boolean = false) => {
-  const { json } = SuperJSON.serialize(value);
+  const { json } = SuperJSON.serialize(value)
 
-  return JSON.stringify(json, null, beautify ? 2 : undefined);
-};
+  return JSON.stringify(json, null, beautify ? 2 : undefined)
+}
 
 // Sorting functions
-type SortFn = (a: Query, b: Query) => number;
+type SortFn = (a: Query, b: Query) => number
 
 const getStatusRank = (q: Query) =>
-  q.state.fetchStatus !== "idle" ? 0 : !q.getObserversCount() ? 3 : q.isStale() ? 2 : 1;
+  q.state.fetchStatus !== 'idle' ? 0 : !q.getObserversCount() ? 3 : q.isStale() ? 2 : 1
 
-const queryHashSort: SortFn = (a, b) => a.queryHash.localeCompare(b.queryHash);
+const queryHashSort: SortFn = (a, b) => a.queryHash.localeCompare(b.queryHash)
 
-const dateSort: SortFn = (a, b) => (a.state.dataUpdatedAt < b.state.dataUpdatedAt ? 1 : -1);
+const dateSort: SortFn = (a, b) => (a.state.dataUpdatedAt < b.state.dataUpdatedAt ? 1 : -1)
 
 const statusAndDateSort: SortFn = (a, b) => {
   if (getStatusRank(a) === getStatusRank(b)) {
-    return dateSort(a, b);
+    return dateSort(a, b)
   }
 
-  return getStatusRank(a) > getStatusRank(b) ? 1 : -1;
-};
+  return getStatusRank(a) > getStatusRank(b) ? 1 : -1
+}
 
 export const sortFns: Record<string, SortFn> = {
   status: statusAndDateSort,
-  "query hash": queryHashSort,
-  "last updated": dateSort,
-};
+  'query hash': queryHashSort,
+  'last updated': dateSort,
+}

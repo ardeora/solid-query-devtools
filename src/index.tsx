@@ -1,3 +1,3 @@
-import "./fonts";
+import './fonts'
 
-export { SolidQueryDevtools } from "./SolidQueryDevtools";
+export { SolidQueryDevtools } from './SolidQueryDevtools'

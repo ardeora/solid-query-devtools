@@ -11,12 +11,12 @@ import {
   onCleanup,
   Show,
   useContext,
-} from "solid-js";
-import { rankItem } from "@tanstack/match-sorter-utils";
-import { createStore, produce, reconcile, unwrap } from "solid-js/store";
-import { css, cx, keyframes } from "@emotion/css";
-import { tokens } from "./theme";
-import superjson, { serialize } from "superjson";
+} from 'solid-js'
+import { rankItem } from '@tanstack/match-sorter-utils'
+import { createStore, produce, reconcile, unwrap } from 'solid-js/store'
+import { css, cx, keyframes } from '@emotion/css'
+import { tokens } from './theme'
+import superjson, { serialize } from 'superjson'
 import {
   Query,
   QueryCache,
@@ -24,7 +24,7 @@ import {
   onlineManager,
   QueryClient,
   QueryState,
-} from "@tanstack/solid-query";
+} from '@tanstack/solid-query'
 import {
   getQueryStatusLabel,
   getQueryStatusColor,
@@ -33,117 +33,117 @@ import {
   displayValue,
   getQueryStatusColorByLabel,
   sortFns,
-} from "./utils";
-import { ArrowDown, ArrowUp, ChevronDown, Offline, Search, Settings, Wifi } from "./icons";
-import Explorer from "./Explorer";
-import { DevtoolsQueryClientContext } from "./Context";
-import { TransitionGroup } from "solid-transition-group";
-import { Key } from "@solid-primitives/keyed";
-import { deepTrack } from "@solid-primitives/deep";
+} from './utils'
+import { ArrowDown, ArrowUp, ChevronDown, Offline, Search, Settings, Wifi } from './icons'
+import Explorer from './Explorer'
+import { DevtoolsQueryClientContext } from './Context'
+import { TransitionGroup } from 'solid-transition-group'
+import { Key } from '@solid-primitives/keyed'
+import { deepTrack } from '@solid-primitives/deep'
 
 interface DevToolsErrorType {
   /**
    * The name of the error.
    */
-  name: string;
+  name: string
   /**
    * How the error is initialized.
    */
-  initializer: (query: Query) => Error;
+  initializer: (query: Query) => Error
 }
 
 interface DevtoolsPanelProps {
-  queryClient?: QueryClient;
+  queryClient?: QueryClient
 }
 
 interface QueryStatusProps {
-  label: string;
-  color: "green" | "yellow" | "gray" | "blue" | "purple";
-  count: number;
+  label: string
+  color: 'green' | 'yellow' | 'gray' | 'blue' | 'purple'
+  count: number
 }
 
-const [selectedQueryHash, setSelectedQueryHash] = createSignal<string | null>(null);
+const [selectedQueryHash, setSelectedQueryHash] = createSignal<string | null>(null)
 
-export const DevtoolsPanel: Component<DevtoolsPanelProps> = (props) => {
-  const styles = getStyles();
+export const DevtoolsPanel: Component<DevtoolsPanelProps> = props => {
+  const styles = getStyles()
 
-  const [open, setOpen] = createSignal(false);
+  const [open, setOpen] = createSignal(false)
 
-  const [devtoolsHeight, setDevtoolsHeight] = createSignal(500);
-  const [isResizing, setIsResizing] = createSignal(false);
+  const [devtoolsHeight, setDevtoolsHeight] = createSignal(500)
+  const [isResizing, setIsResizing] = createSignal(false)
 
-  const [filter, setFilter] = createSignal("");
-  const [sort, setSort] = createSignal(Object.keys(sortFns)[0]);
-  const [sortOrder, setSortOrder] = createSignal<1 | -1>(1);
+  const [filter, setFilter] = createSignal('')
+  const [sort, setSort] = createSignal(Object.keys(sortFns)[0])
+  const [sortOrder, setSortOrder] = createSignal<1 | -1>(1)
 
-  const sortFn = createMemo(() => sortFns[sort() as string]);
+  const sortFn = createMemo(() => sortFns[sort() as string])
 
   const queryCache = createMemo(() => {
-    return useContext(DevtoolsQueryClientContext).getQueryCache();
-  });
+    return useContext(DevtoolsQueryClientContext).getQueryCache()
+  })
 
-  const queryCount = createSubscribeToQueryCache((queryCache) => {
-    const curr = queryCache().getAll();
-    const res: { [K in IQueryStatusLabel]?: number } = {};
+  const queryCount = createSubscribeToQueryCache(queryCache => {
+    const curr = queryCache().getAll()
+    const res: { [K in IQueryStatusLabel]?: number } = {}
     for (const label of queryStatusLabels) {
-      res[label] = curr.filter((e) => getQueryStatusLabel(e) === label).length;
+      res[label] = curr.filter(e => getQueryStatusLabel(e) === label).length
     }
-    return res;
-  });
+    return res
+  })
 
   const queries = createMemo(
     on(
       () => [queryCount(), filter(), sort(), sortOrder()],
       () => {
-        const curr = queryCache().getAll();
+        const curr = queryCache().getAll()
 
         const filtered = filter()
-          ? curr.filter((item) => rankItem(item.queryHash, filter()).passed)
-          : [...curr];
+          ? curr.filter(item => rankItem(item.queryHash, filter()).passed)
+          : [...curr]
 
-        const sorted = sortFn() ? filtered.sort((a, b) => sortFn()(a, b) * sortOrder()) : filtered;
-        return sorted;
+        const sorted = sortFn() ? filtered.sort((a, b) => sortFn()(a, b) * sortOrder()) : filtered
+        return sorted
       },
     ),
-  );
+  )
 
-  const [offline, setOffline] = createSignal(false);
+  const [offline, setOffline] = createSignal(false)
 
-  const handleDragStart: JSX.EventHandler<HTMLDivElement, MouseEvent> = (event) => {
-    console.log(event.currentTarget);
+  const handleDragStart: JSX.EventHandler<HTMLDivElement, MouseEvent> = event => {
+    console.log(event.currentTarget)
     // if (!panelElement) return
     // if (startEvent.button !== 0) return // Only allow left click for drag
     // const isVertical = isVerticalSide(panelPosition)
-    const panelElement = event.currentTarget.parentElement;
-    if (!panelElement) return;
-    console.log(panelElement);
-    setIsResizing(true);
-    const { height, width } = panelElement.getBoundingClientRect();
-    const startX = event.clientX;
-    const startY = event.clientY;
-    console.log(startX, startY);
-    let newSize = 0;
+    const panelElement = event.currentTarget.parentElement
+    if (!panelElement) return
+    console.log(panelElement)
+    setIsResizing(true)
+    const { height, width } = panelElement.getBoundingClientRect()
+    const startX = event.clientX
+    const startY = event.clientY
+    console.log(startX, startY)
+    let newSize = 0
 
     const runDrag = (moveEvent: MouseEvent) => {
       // prevent mouse selecting stuff with mouse drag
-      moveEvent.preventDefault();
+      moveEvent.preventDefault()
       // calculate the correct size based on mouse position and current panel position
       // hint: it is different formula for the opposite sides
-      newSize = height + startY - moveEvent.clientY;
-      setDevtoolsHeight(Math.round(newSize));
-    };
+      newSize = height + startY - moveEvent.clientY
+      setDevtoolsHeight(Math.round(newSize))
+    }
 
     const unsub = () => {
       if (isResizing()) {
-        setIsResizing(false);
+        setIsResizing(false)
       }
-      document.removeEventListener("mousemove", runDrag, false);
-      document.removeEventListener("mouseUp", unsub, false);
-    };
+      document.removeEventListener('mousemove', runDrag, false)
+      document.removeEventListener('mouseUp', unsub, false)
+    }
 
-    document.addEventListener("mousemove", runDrag, false);
-    document.addEventListener("mouseup", unsub, false);
-  };
+    document.addEventListener('mousemove', runDrag, false)
+    document.addEventListener('mouseup', unsub, false)
+  }
 
   return (
     <div
@@ -195,13 +195,13 @@ export const DevtoolsPanel: Component<DevtoolsPanelProps> = (props) => {
                     <input
                       type="text"
                       placeholder="Filter"
-                      onInput={(e) => setFilter(e.currentTarget.value)}
+                      onInput={e => setFilter(e.currentTarget.value)}
                       value={filter()}
                     />
                   </div>
                   <div class={styles.filterSelect}>
-                    <select value={sort()} onChange={(e) => setSort(e.currentTarget.value)}>
-                      {Object.keys(sortFns).map((key) => (
+                    <select value={sort()} onChange={e => setSort(e.currentTarget.value)}>
+                      {Object.keys(sortFns).map(key => (
                         <option value={key}>Sort by {key}</option>
                       ))}
                     </select>
@@ -209,7 +209,7 @@ export const DevtoolsPanel: Component<DevtoolsPanelProps> = (props) => {
                   </div>
                   <button
                     onClick={() => {
-                      setSortOrder((prev) => (prev === 1 ? -1 : 1));
+                      setSortOrder(prev => (prev === 1 ? -1 : 1))
                     }}
                   >
                     <Show when={sortOrder() === 1}>
@@ -227,12 +227,12 @@ export const DevtoolsPanel: Component<DevtoolsPanelProps> = (props) => {
                   <button
                     onClick={() => {
                       if (offline()) {
-                        onlineManager.setOnline(undefined);
-                        setOffline(false);
-                        window.dispatchEvent(new Event("online"));
+                        onlineManager.setOnline(undefined)
+                        setOffline(false)
+                        window.dispatchEvent(new Event('online'))
                       } else {
-                        onlineManager.setOnline(false);
-                        setOffline(true);
+                        onlineManager.setOnline(false)
+                        setOffline(true)
                       }
                     }}
                   >
@@ -245,7 +245,7 @@ export const DevtoolsPanel: Component<DevtoolsPanelProps> = (props) => {
               </div>
               <div class={styles.overflowQueryContainer}>
                 <div>
-                  <For each={queries()}>{(query) => <QueryRow query={query} />}</For>
+                  <For each={queries()}>{query => <QueryRow query={query} />}</For>
                 </div>
               </div>
             </div>
@@ -266,45 +266,45 @@ export const DevtoolsPanel: Component<DevtoolsPanelProps> = (props) => {
         </Show>
       </TransitionGroup>
     </div>
-  );
-};
+  )
+}
 
-export const QueryRow: Component<{ query: Query }> = (props) => {
-  const styles = getStyles();
+export const QueryRow: Component<{ query: Query }> = props => {
+  const styles = getStyles()
 
   const queryState = createSubscribeToQueryCache(
-    (queryCache) =>
+    queryCache =>
       queryCache().find({
         queryKey: props.query.queryKey,
       })?.state,
-  );
+  )
 
   const isStale = createSubscribeToQueryCache(
-    (queryCache) =>
+    queryCache =>
       queryCache()
         .find({
           queryKey: props.query.queryKey,
         })
         ?.isStale() ?? false,
-  );
+  )
 
   const isDisabled = createSubscribeToQueryCache(
-    (queryCache) =>
+    queryCache =>
       queryCache()
         .find({
           queryKey: props.query.queryKey,
         })
         ?.isDisabled() ?? false,
-  );
+  )
 
   const observers = createSubscribeToQueryCache(
-    (queryCache) =>
+    queryCache =>
       queryCache()
         .find({
           queryKey: props.query.queryKey,
         })
         ?.getObserversCount() ?? 0,
-  );
+  )
 
   const color = createMemo(() =>
     getQueryStatusColor({
@@ -312,7 +312,7 @@ export const QueryRow: Component<{ query: Query }> = (props) => {
       observerCount: observers(),
       isStale: isStale(),
     }),
-  );
+  )
 
   return (
     <Show when={queryState()}>
@@ -329,8 +329,8 @@ export const QueryRow: Component<{ query: Query }> = (props) => {
       >
         <div
           class={cx(
-            "SQDObserverCount",
-            color() === "gray"
+            'SQDObserverCount',
+            color() === 'gray'
               ? css`
                   background-color: ${tokens.colors[color()][700]};
                   color: ${tokens.colors[color()][300]};
@@ -349,46 +349,46 @@ export const QueryRow: Component<{ query: Query }> = (props) => {
         </Show>
       </button>
     </Show>
-  );
-};
+  )
+}
 
 export const QueryStatusCount: Component = () => {
   const stale = createSubscribeToQueryCache(
-    (queryCache) =>
+    queryCache =>
       queryCache()
         .getAll()
-        .filter((q) => getQueryStatusLabel(q) === "stale").length,
-  );
+        .filter(q => getQueryStatusLabel(q) === 'stale').length,
+  )
 
   const fresh = createSubscribeToQueryCache(
-    (queryCache) =>
+    queryCache =>
       queryCache()
         .getAll()
-        .filter((q) => getQueryStatusLabel(q) === "fresh").length,
-  );
+        .filter(q => getQueryStatusLabel(q) === 'fresh').length,
+  )
 
   const fetching = createSubscribeToQueryCache(
-    (queryCache) =>
+    queryCache =>
       queryCache()
         .getAll()
-        .filter((q) => getQueryStatusLabel(q) === "fetching").length,
-  );
+        .filter(q => getQueryStatusLabel(q) === 'fetching').length,
+  )
 
   const paused = createSubscribeToQueryCache(
-    (queryCache) =>
+    queryCache =>
       queryCache()
         .getAll()
-        .filter((q) => getQueryStatusLabel(q) === "paused").length,
-  );
+        .filter(q => getQueryStatusLabel(q) === 'paused').length,
+  )
 
   const inactive = createSubscribeToQueryCache(
-    (queryCache) =>
+    queryCache =>
       queryCache()
         .getAll()
-        .filter((q) => getQueryStatusLabel(q) === "inactive").length,
-  );
+        .filter(q => getQueryStatusLabel(q) === 'inactive').length,
+  )
 
-  const styles = getStyles();
+  const styles = getStyles()
 
   return (
     <div class={styles.queryStatusContainer}>
@@ -398,11 +398,11 @@ export const QueryStatusCount: Component = () => {
       <QueryStatus label="Stale" color="yellow" count={stale()} />
       <QueryStatus label="Inactive" color="gray" count={inactive()} />
     </div>
-  );
-};
+  )
+}
 
-export const QueryStatus: Component<QueryStatusProps> = (props) => {
-  const styles = getStyles();
+export const QueryStatus: Component<QueryStatusProps> = props => {
+  const styles = getStyles()
 
   return (
     <span class={styles.queryStatusTag}>
@@ -418,132 +418,131 @@ export const QueryStatus: Component<QueryStatusProps> = (props) => {
       <span
         class={cx(
           styles.queryStatusCount,
-          props.count > 0 && props.color !== "gray"
+          props.count > 0 && props.color !== 'gray'
             ? css`
                 background-color: ${tokens.colors[props.color][900]};
                 color: ${tokens.colors[props.color][300]} !important;
               `
             : css`
-                color: ${tokens.colors["gray"][400]} !important;
+                color: ${tokens.colors['gray'][400]} !important;
               `,
         )}
       >
         {props.count}
       </span>
     </span>
-  );
-};
+  )
+}
 
 const QueryDetails = () => {
-  const styles = getStyles();
-  const queryClient = useContext(DevtoolsQueryClientContext);
+  const styles = getStyles()
+  const queryClient = useContext(DevtoolsQueryClientContext)
 
-  const activeQuery = createSubscribeToQueryCache((queryCache) =>
+  const activeQuery = createSubscribeToQueryCache(queryCache =>
     queryCache()
       .getAll()
-      .find((query) => query.queryHash === selectedQueryHash()),
-  );
+      .find(query => query.queryHash === selectedQueryHash()),
+  )
 
-  const activeQueryFresh = createSubscribeToQueryCache((queryCache) => {
+  const activeQueryFresh = createSubscribeToQueryCache(queryCache => {
     const query = queryCache()
       .getAll()
-      .find((query) => query.queryHash === selectedQueryHash());
+      .find(query => query.queryHash === selectedQueryHash())
     return JSON.parse(
       JSON.stringify(query, (key, value) => {
         if (value instanceof Map) {
-          return Object.fromEntries(value);
+          return Object.fromEntries(value)
         } else if (value instanceof Set) {
-          return Array.from(value);
+          return Array.from(value)
         }
-        return value;
+        return value
       }),
-    ) as Query;
-  });
+    ) as Query
+  })
 
   const activeQueryState = createSubscribeToQueryCache(
-    (queryCache) =>
+    queryCache =>
       queryCache()
         .getAll()
-        .find((query) => query.queryHash === selectedQueryHash())?.state,
-  );
+        .find(query => query.queryHash === selectedQueryHash())?.state,
+  )
 
-  const activeQueryStateData = createSubscribeToQueryCache((queryCache) => {
+  const activeQueryStateData = createSubscribeToQueryCache(queryCache => {
     return superjson.deserialize(
       superjson.serialize(
         queryCache()
           .getAll()
-          .find((query) => query.queryHash === selectedQueryHash())?.state.data,
+          .find(query => query.queryHash === selectedQueryHash())?.state.data,
       ),
-    );
-  });
+    )
+  })
 
-  const statusLabel = createSubscribeToQueryCache((queryCache) => {
+  const statusLabel = createSubscribeToQueryCache(queryCache => {
     const query = queryCache()
       .getAll()
-      .find((query) => query.queryHash === selectedQueryHash());
-    if (!query) return "inactive";
-    return getQueryStatusLabel(query);
-  });
+      .find(query => query.queryHash === selectedQueryHash())
+    if (!query) return 'inactive'
+    return getQueryStatusLabel(query)
+  })
 
-  const queryStatus = createSubscribeToQueryCache((queryCache) => {
+  const queryStatus = createSubscribeToQueryCache(queryCache => {
     const query = queryCache()
       .getAll()
-      .find((query) => query.queryHash === selectedQueryHash());
-    if (!query) return "pending";
-    return query.state.status;
-  });
+      .find(query => query.queryHash === selectedQueryHash())
+    if (!query) return 'pending'
+    return query.state.status
+  })
 
   const isStale = createSubscribeToQueryCache(
-    (queryCache) =>
+    queryCache =>
       queryCache()
         .getAll()
-        .find((query) => query.queryHash === selectedQueryHash())
+        .find(query => query.queryHash === selectedQueryHash())
         ?.isStale() ?? false,
-  );
+  )
 
   const observerCount = createSubscribeToQueryCache(
-    (queryCache) =>
+    queryCache =>
       queryCache()
         .getAll()
-        .find((query) => query.queryHash === selectedQueryHash())
+        .find(query => query.queryHash === selectedQueryHash())
         ?.getObserversCount() ?? 0,
-  );
+  )
 
   const queryCache = createMemo(() => {
-    const client = useContext(DevtoolsQueryClientContext);
-    return client.getQueryCache();
-  });
+    const client = useContext(DevtoolsQueryClientContext)
+    return client.getQueryCache()
+  })
 
-  const color = createMemo(() => getQueryStatusColorByLabel(statusLabel()));
+  const color = createMemo(() => getQueryStatusColorByLabel(statusLabel()))
 
   const handleRefetch = () => {
-    const promise = activeQuery()?.fetch();
-    promise?.catch(() => {});
-  };
+    const promise = activeQuery()?.fetch()
+    promise?.catch(() => {})
+  }
 
   const triggerError = (errorType?: DevToolsErrorType) => {
-    const error =
-      errorType?.initializer(activeQuery()!) ?? new Error("Unknown error from devtools");
+    const error = errorType?.initializer(activeQuery()!) ?? new Error('Unknown error from devtools')
 
-    const __previousQueryOptions = activeQuery()!.options;
+    const __previousQueryOptions = activeQuery()!.options
 
     activeQuery()!.setState({
-      status: "error",
+      status: 'error',
       error,
       // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
       fetchMeta: {
         ...activeQuery()!.state.fetchMeta,
         __previousQueryOptions,
       } as any,
-    } as QueryState<unknown, Error>);
-  };
+    } as QueryState<unknown, Error>)
+  }
 
   const restoreQueryAfterLoadingOrError = () => {
     activeQuery()?.fetch((activeQuery()?.state.fetchMeta as any).__previousQueryOptions, {
       // Make sure this fetch will cancel the previous one
       cancelRefetch: true,
-    });
-  };
+    })
+  }
 
   return (
     <Show when={activeQuery() && activeQueryState()}>
@@ -557,7 +556,7 @@ const QueryDetails = () => {
             <span
               class={cx(
                 styles.queryDetailsStatus,
-                color() === "gray"
+                color() === 'gray'
                   ? css`
                       background-color: ${tokens.colors[color()][700]};
                       color: ${tokens.colors[color()][300]};
@@ -589,7 +588,7 @@ const QueryDetails = () => {
               color: ${tokens.colors.blue[400]};
             `}
             onClick={handleRefetch}
-            disabled={statusLabel() === "fetching"}
+            disabled={statusLabel() === 'fetching'}
           >
             <span
               class={css`
@@ -630,30 +629,30 @@ const QueryDetails = () => {
             `}
             onClick={() => {
               if (activeQuery()?.state.data === undefined) {
-                restoreQueryAfterLoadingOrError();
+                restoreQueryAfterLoadingOrError()
               } else {
-                const activeQueryVal = activeQuery();
-                if (!activeQueryVal) return;
-                const __previousQueryOptions = activeQueryVal.options;
+                const activeQueryVal = activeQuery()
+                if (!activeQueryVal) return
+                const __previousQueryOptions = activeQueryVal.options
                 // Trigger a fetch in order to trigger suspense as well.
                 activeQueryVal.fetch({
                   ...__previousQueryOptions,
                   queryFn: () => {
                     return new Promise(() => {
                       // Never resolve
-                    });
+                    })
                   },
                   gcTime: -1,
-                });
+                })
                 activeQueryVal.setState({
                   data: undefined,
-                  status: "pending",
+                  status: 'pending',
                   // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
                   fetchMeta: {
                     ...activeQueryVal.state.fetchMeta,
                     __previousQueryOptions,
                   } as any,
-                } as QueryState<unknown, Error>);
+                } as QueryState<unknown, Error>)
               }
             }}
           >
@@ -662,7 +661,7 @@ const QueryDetails = () => {
                 background-color: ${tokens.colors.cyan[400]};
               `}
             ></span>
-            {statusLabel() === "fetching" ? "Restore" : "Trigger"} Loading
+            {statusLabel() === 'fetching' ? 'Restore' : 'Trigger'} Loading
           </button>
           <button
             class={css`
@@ -670,9 +669,9 @@ const QueryDetails = () => {
             `}
             onClick={() => {
               if (!activeQuery()!.state.error) {
-                triggerError();
+                triggerError()
               } else {
-                queryClient.resetQueries(activeQuery());
+                queryClient.resetQueries(activeQuery())
               }
             }}
           >
@@ -681,18 +680,18 @@ const QueryDetails = () => {
                 background-color: ${tokens.colors.red[400]};
               `}
             ></span>
-            {queryStatus() === "error" ? "Restore" : "Trigger"} Error
+            {queryStatus() === 'error' ? 'Restore' : 'Trigger'} Error
           </button>
         </div>
         <div class={styles.detailsHeader}>Data Explorer</div>
         <div
           style={{
-            padding: "0.5rem",
+            padding: '0.5rem',
           }}
         >
           <Explorer
             label="Data"
-            defaultExpanded={["Data"]}
+            defaultExpanded={['Data']}
             value={activeQueryStateData()}
             copyable
           />
@@ -700,46 +699,46 @@ const QueryDetails = () => {
         <div class={styles.detailsHeader}>Query Explorer</div>
         <div
           style={{
-            padding: "0.5rem",
+            padding: '0.5rem',
           }}
         >
           <Explorer
             label="Query"
-            defaultExpanded={["Query", "queryKey"]}
+            defaultExpanded={['Query', 'queryKey']}
             value={activeQueryFresh()}
           />
         </div>
       </div>
     </Show>
-  );
-};
+  )
+}
 
 const createSubscribeToQueryCache = <T,>(
   callback: (queryCache: Accessor<QueryCache>) => Exclude<T, Function>,
 ): Accessor<T> => {
   const queryCache = createMemo(() => {
-    const client = useContext(DevtoolsQueryClientContext);
-    return client.getQueryCache();
-  });
-  const [value, setValue] = createSignal<T>(callback(queryCache));
+    const client = useContext(DevtoolsQueryClientContext)
+    return client.getQueryCache()
+  })
+  const [value, setValue] = createSignal<T>(callback(queryCache))
 
   const unsub = queryCache().subscribe(() => {
-    setValue(callback(queryCache));
-  });
+    setValue(callback(queryCache))
+  })
 
   createEffect(() => {
-    setValue(callback(queryCache));
-  });
+    setValue(callback(queryCache))
+  })
 
   onCleanup(() => {
-    unsub();
-  });
+    unsub()
+  })
 
-  return value;
-};
+  return value
+}
 
 const getStyles = () => {
-  const { colors, font, size, alpha, shadow } = tokens;
+  const { colors, font, size, alpha, shadow } = tokens
 
   return {
     devtoolsBtn: css`
@@ -763,7 +762,7 @@ const getStyles = () => {
         right: -8px;
         bottom: -8px;
         border-radius: 9999px;
-        background-image: url("https://avatars.githubusercontent.com/u/72518640");
+        background-image: url('https://avatars.githubusercontent.com/u/72518640');
         background-size: cover;
         background-position: center;
         background-repeat: no-repeat;
@@ -802,7 +801,7 @@ const getStyles = () => {
       min-height: 3.5rem;
       gap: ${tokens.size[0.5]};
       & * {
-        font-family: "Inter", sans-serif;
+        font-family: 'Inter', sans-serif;
         color: ${colors.gray[300]};
         box-sizing: border-box;
       }
@@ -1033,7 +1032,7 @@ const getStyles = () => {
         min-height: ${tokens.size[8]};
         flex: 1;
         padding: ${tokens.size[1]} ${tokens.size[2]};
-        font-family: "Menlo", "Fira Code", monospace !important;
+        font-family: 'Menlo', 'Fira Code', monospace !important;
         border-bottom: 1px solid ${colors.darkGray[400]};
         text-align: left;
         text-overflow: clip;
@@ -1088,7 +1087,7 @@ const getStyles = () => {
       }
 
       & pre {
-        font-family: "Menlo", "Fira Code", monospace !important;
+        font-family: 'Menlo', 'Fira Code', monospace !important;
         margin: 0;
         font-size: ${font.size.sm};
         line-height: ${font.lineHeight.sm};
@@ -1135,5 +1134,5 @@ const getStyles = () => {
         }
       }
     `,
-  };
-};
+  }
+}

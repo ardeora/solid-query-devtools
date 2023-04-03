@@ -1,5 +1,5 @@
-import { Key } from "@solid-primitives/keyed";
-import { createQuery, createQueries } from "@tanstack/solid-query";
+import { Key } from '@solid-primitives/keyed'
+import { createQuery, createQueries } from '@tanstack/solid-query'
 import {
   Component,
   createEffect,
@@ -9,27 +9,27 @@ import {
   Show,
   Suspense,
   Switch,
-} from "solid-js";
-import { reconcile } from "solid-js/store";
-import { SolidQueryDevtools } from "../src";
+} from 'solid-js'
+import { reconcile } from 'solid-js/store'
+import { SolidQueryDevtools } from '../src'
 
 const companies = [
-  "Catalog",
-  "Capsule",
-  "Hourglass",
-  "Pillar",
-  "Layers",
-  "Cubes",
-  "Quotient",
-  "Sisyphus",
-  "Circles",
-  "Squares",
-  "Triangles",
-];
-let count = 0;
+  'Catalog',
+  'Capsule',
+  'Hourglass',
+  'Pillar',
+  'Layers',
+  'Cubes',
+  'Quotient',
+  'Sisyphus',
+  'Circles',
+  'Squares',
+  'Triangles',
+]
+let count = 0
 
 const App: Component = () => {
-  const [showMore, setShowMore] = createSignal(false);
+  const [showMore, setShowMore] = createSignal(false)
 
   // const query = createQuery(() => ({
   //   queryKey: ["pikachu"],
@@ -46,15 +46,15 @@ const App: Component = () => {
 
   for (let i = 0; i < 5; i++) {
     const query = createQuery(() => ({
-      queryKey: ["pokemon", i + 1],
+      queryKey: ['pokemon', i + 1],
       queryFn: async () => {
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+        await new Promise(resolve => setTimeout(resolve, 1000))
         return {
           count: i + 1,
-        };
+        }
       },
       enabled: false,
-    }));
+    }))
   }
 
   // const queries = createQueries(() => ({
@@ -78,19 +78,19 @@ const App: Component = () => {
   // });
 
   const query2 = createQuery(() => ({
-    queryKey: ["set"],
+    queryKey: ['set'],
     queryFn: async () => {
-      const set = new Set();
-      set.add("a");
-      set.add("b");
-      set.add("c");
-      return set;
+      const set = new Set()
+      set.add('a')
+      set.add('b')
+      set.add('c')
+      return set
     },
     staleTime: 100000,
-  }));
+  }))
 
   const query3 = createQuery(() => ({
-    queryKey: ["map"],
+    queryKey: ['map'],
     queryFn: async () => {
       // const map = new Map();
       // map.set("a", "apple");
@@ -109,28 +109,28 @@ const App: Component = () => {
       // map.set("g", map2);
 
       // return map;
-      return new Promise((resolve) => setTimeout(() => resolve("hello"), 1000000));
+      return new Promise(resolve => setTimeout(() => resolve('hello'), 1000000))
     },
-  }));
+  }))
 
   const query4 = createQuery(() => ({
-    queryKey: ["string"],
+    queryKey: ['string'],
     queryFn: async () => {
-      return "Hello World" + Math.floor(Math.random() * 100);
+      return 'Hello World' + Math.floor(Math.random() * 100)
     },
-  }));
+  }))
 
   const query5 = createQuery(() => ({
-    queryKey: ["array"],
+    queryKey: ['array'],
     queryFn: async () => {
       // Fetch users from an API
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-      const res = await fetch("https://jsonplaceholder.typicode.com/users");
-      const obj = await res.json();
+      await new Promise(resolve => setTimeout(resolve, 2000))
+      const res = await fetch('https://jsonplaceholder.typicode.com/users')
+      const obj = await res.json()
       obj.map((user: any) => {
-        user.name += Math.floor(Math.random() * 100);
-      });
-      return obj;
+        user.name += Math.floor(Math.random() * 100)
+      })
+      return obj
     },
 
     // select(data) {
@@ -142,28 +142,28 @@ const App: Component = () => {
     //   }));
     //   return newData;
     // },
-  }));
+  }))
 
   // createEffect(() => {
   //   console.log(query5.data?.[0]?.name);
   // });
 
   const query6 = createQuery(() => ({
-    queryKey: ["array_flat"],
+    queryKey: ['array_flat'],
     queryFn: async () => {
-      return ["a", "b", "c", "d", "e", "f"];
+      return ['a', 'b', 'c', 'd', 'e', 'f']
     },
-  }));
+  }))
 
   const query7 = createQuery(() => ({
-    queryKey: ["array_big"],
+    queryKey: ['array_big'],
     queryFn: async () => {
-      return Array.from(Array(1000).keys()).map((i) => ({
+      return Array.from(Array(1000).keys()).map(i => ({
         id: i,
         name: companies[i % companies.length],
-      }));
+      }))
     },
-  }));
+  }))
 
   return (
     <>
@@ -182,28 +182,28 @@ const App: Component = () => {
       </ErrorBoundary>
       <SolidQueryDevtools />
     </>
-  );
-};
+  )
+}
 
 const MoreQueries = () => {
   for (let i = 0; i < 10; i++) {
     const query = createQuery(() => ({
-      queryKey: ["pokemons", i + 1],
+      queryKey: ['pokemons', i + 1],
       queryFn: async () => {
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+        await new Promise(resolve => setTimeout(resolve, 1000))
         return {
           count: 1,
-        };
+        }
       },
       throwErrors: true,
-    }));
+    }))
   }
 
   return (
     <div>
       <h1>More Queries</h1>
     </div>
-  );
-};
+  )
+}
 
-export default App;
+export default App
