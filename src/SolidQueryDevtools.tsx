@@ -2,6 +2,7 @@ import { QueryClient, useQueryClient } from '@tanstack/solid-query'
 import { Component, createMemo } from 'solid-js'
 import { DevtoolsQueryClientContext } from './Context'
 import { DevtoolsPanel } from './Devtools'
+import { isServer } from 'solid-js/web'
 
 interface SolidQueryDevtoolsProps {
   queryClient?: QueryClient
@@ -10,7 +11,7 @@ interface SolidQueryDevtoolsProps {
 export const SolidQueryDevtools: Component<SolidQueryDevtoolsProps> = props => {
   const client = createMemo(() => props.queryClient || useQueryClient())
 
-  return (
+  return isServer ? null : (
     <DevtoolsQueryClientContext.Provider value={client()}>
       <DevtoolsPanel />
     </DevtoolsQueryClientContext.Provider>
