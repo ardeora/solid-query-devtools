@@ -165,7 +165,7 @@ export const DevtoolsPanel: Component<DevtoolsPanelProps> = (props) => {
 
         & .SQD-button-exit-to,
         & .SQD-button-enter {
-          opacity: 0;
+          transform: translateY(72px);
         }
       `}
     >
@@ -178,7 +178,7 @@ export const DevtoolsPanel: Component<DevtoolsPanelProps> = (props) => {
                 class={cx(
                   styles.row,
                   css`
-                    gap: 2.5rem;
+                    gap: 2rem;
                   `,
                 )}
               >
@@ -405,7 +405,7 @@ export const QueryStatus: Component<QueryStatusProps> = (props) => {
   const styles = getStyles();
 
   return (
-    <button class={cx(styles.queryStatusTag)}>
+    <span class={styles.queryStatusTag}>
       <span
         class={css`
           width: ${tokens.size[2]};
@@ -430,7 +430,7 @@ export const QueryStatus: Component<QueryStatusProps> = (props) => {
       >
         {props.count}
       </span>
-    </button>
+    </span>
   );
 };
 
@@ -743,9 +743,10 @@ const getStyles = () => {
 
   return {
     devtoolsBtn: css`
+      z-index: 9999;
       position: fixed;
       bottom: 16px;
-      left: 16px;
+      right: 16px;
       padding: 4px;
 
       display: flex;
@@ -793,6 +794,7 @@ const getStyles = () => {
       bottom: 0;
       right: 0;
       left: 0;
+      z-index: 9999;
       background-color: ${colors.darkGray[800]};
       border-top: ${colors.darkGray[300]} 1px solid;
       display: flex;
@@ -874,6 +876,10 @@ const getStyles = () => {
       line-height: ${font.lineHeight.md};
       font-weight: ${font.weight.medium};
       border: none;
+      user-select: none;
+      & span:nth-child(2) {
+        color: ${colors.gray[300]}${alpha[80]};
+      }
     `,
     selectedQueryRow: css`
       background-color: ${colors.darkGray[500]};
@@ -1110,6 +1116,7 @@ const getStyles = () => {
         align-items: center;
         gap: ${tokens.size[2]};
         font-weight: ${font.weight.medium};
+        line-height: ${font.lineHeight.sm};
         cursor: pointer;
 
         &:hover {
