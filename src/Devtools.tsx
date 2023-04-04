@@ -543,9 +543,9 @@ const QueryDetails = () => {
         <div class={styles.detailsHeader}>Query Details</div>
         <div class={styles.detailsBody}>
           <div>
-            <code>
-              <pre>{displayValue(activeQuery()!.queryKey, true)}</pre>
-            </code>
+            <pre>
+              <code>{displayValue(activeQuery()!.queryKey, true)}</code>
+            </pre>
             <span
               class={cx(
                 styles.queryDetailsStatus,
@@ -1079,7 +1079,7 @@ const getStyles = () => {
         margin-bottom: ${tokens.size[2]};
       }
 
-      & pre {
+      & code {
         font-family: 'Menlo', 'Fira Code', monospace !important;
         margin: 0;
         font-size: ${font.size.sm};
