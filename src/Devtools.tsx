@@ -66,7 +66,7 @@ interface QueryStatusProps {
 const [selectedQueryHash, setSelectedQueryHash] = createSignal<string | null>(null)
 
 export const DevtoolsPanel: Component<DevtoolsPanelProps> = props => {
-  loadFonts()
+  // loadFonts()
   const styles = getStyles()
 
   const [open, setOpen] = createSignal(false)

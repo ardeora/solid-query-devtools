@@ -1,1 +1,3 @@
-export { SolidQueryDevtools } from './SolidQueryDevtools'
+import { SolidQueryDevtools } from './SolidQueryDevtools'
+export default SolidQueryDevtools
+export { SolidQueryDevtools }
