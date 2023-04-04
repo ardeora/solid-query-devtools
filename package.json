@@ -1,5 +1,5 @@
 {
-  "version": "0.0.1",
+  "version": "0.0.4",
   "name": "@adeora/solid-query-devtools",
   "description": "TanStack Solid Query Devtools",
   "license": "MIT",
@@ -17,9 +17,7 @@
     "src",
     "dist"
   ],
-  "sideEffects": [
-    "./src/fonts.ts"
-  ],
+  "sideEffects": false,
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",

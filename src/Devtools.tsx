@@ -38,6 +38,7 @@ import { ArrowDown, ArrowUp, ChevronDown, Offline, Search, Settings, Wifi } from
 import Explorer from './Explorer'
 import { DevtoolsQueryClientContext } from './Context'
 import { TransitionGroup } from 'solid-transition-group'
+import { loadFonts } from './fonts'
 import { Key } from '@solid-primitives/keyed'
 import { deepTrack } from '@solid-primitives/deep'
 
@@ -65,6 +66,7 @@ interface QueryStatusProps {
 const [selectedQueryHash, setSelectedQueryHash] = createSignal<string | null>(null)
 
 export const DevtoolsPanel: Component<DevtoolsPanelProps> = props => {
+  loadFonts()
   const styles = getStyles()
 
   const [open, setOpen] = createSignal(false)
@@ -76,7 +78,7 @@ export const DevtoolsPanel: Component<DevtoolsPanelProps> = props => {
   const [sort, setSort] = createSignal(Object.keys(sortFns)[0])
   const [sortOrder, setSortOrder] = createSignal<1 | -1>(1)
 
-  const sortFn = createMemo(() => sortFns[sort() as string])
+  const sortFn = createMemo(() => sortFns[sort() as string]!)
 
   const queryCache = createMemo(() => {
     return useContext(DevtoolsQueryClientContext).getQueryCache()
@@ -110,25 +112,16 @@ export const DevtoolsPanel: Component<DevtoolsPanelProps> = props => {
   const [offline, setOffline] = createSignal(false)
 
   const handleDragStart: JSX.EventHandler<HTMLDivElement, MouseEvent> = event => {
-    console.log(event.currentTarget)
-    // if (!panelElement) return
-    // if (startEvent.button !== 0) return // Only allow left click for drag
-    // const isVertical = isVerticalSide(panelPosition)
     const panelElement = event.currentTarget.parentElement
     if (!panelElement) return
-    console.log(panelElement)
     setIsResizing(true)
     const { height, width } = panelElement.getBoundingClientRect()
     const startX = event.clientX
     const startY = event.clientY
-    console.log(startX, startY)
     let newSize = 0
 
     const runDrag = (moveEvent: MouseEvent) => {
-      // prevent mouse selecting stuff with mouse drag
       moveEvent.preventDefault()
-      // calculate the correct size based on mouse position and current panel position
-      // hint: it is different formula for the opposite sides
       newSize = height + startY - moveEvent.clientY
       setDevtoolsHeight(Math.round(newSize))
     }
