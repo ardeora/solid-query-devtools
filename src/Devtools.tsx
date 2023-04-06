@@ -41,6 +41,7 @@ import { TransitionGroup } from 'solid-transition-group'
 import { loadFonts } from './fonts'
 import { Key } from '@solid-primitives/keyed'
 import { deepTrack } from '@solid-primitives/deep'
+import { createLocalStorage } from '@solid-primitives/storage'
 
 interface DevToolsErrorType {
   /**
@@ -69,9 +70,14 @@ export const DevtoolsPanel: Component<DevtoolsPanelProps> = props => {
   // loadFonts()
   const styles = getStyles()
 
-  const [open, setOpen] = createSignal(false)
+  const [openStore, setOpen] = createLocalStorage({
+    prefix: 'solidQueryDevtools',
+  })
 
-  const [devtoolsHeight, setDevtoolsHeight] = createSignal(500)
+  const [devtoolsHeightStore, setDevtoolsHeight] = createLocalStorage({
+    prefix: 'solidQueryDevtools',
+  })
+
   const [isResizing, setIsResizing] = createSignal(false)
 
   const [filter, setFilter] = createSignal('')
@@ -123,7 +129,7 @@ export const DevtoolsPanel: Component<DevtoolsPanelProps> = props => {
     const runDrag = (moveEvent: MouseEvent) => {
       moveEvent.preventDefault()
       newSize = height + startY - moveEvent.clientY
-      setDevtoolsHeight(Math.round(newSize))
+      setDevtoolsHeight('height', String(Math.round(newSize)))
     }
 
     const unsub = () => {
@@ -148,7 +154,7 @@ export const DevtoolsPanel: Component<DevtoolsPanelProps> = props => {
 
         & .SQD-panel-exit-to,
         & .SQD-panel-enter {
-          transform: translateY(${devtoolsHeight()}px);
+          transform: translateY(${Number(devtoolsHeightStore.height || 500)}px);
         }
 
         & .SQD-button-exit-active,
@@ -163,8 +169,8 @@ export const DevtoolsPanel: Component<DevtoolsPanelProps> = props => {
       `}
     >
       <TransitionGroup name="SQD-panel">
-        <Show when={open()}>
-          <aside class={styles.panel} style={{ height: `${devtoolsHeight()}px` }}>
+        <Show when={openStore.open === 'true'}>
+          <aside class={styles.panel} style={{ height: `${devtoolsHeightStore.height || 500}px` }}>
             <div class={styles.dragHandle} onMouseDown={handleDragStart}></div>
             <div class={styles.queriesContainer}>
               <div
@@ -175,7 +181,7 @@ export const DevtoolsPanel: Component<DevtoolsPanelProps> = props => {
                   `,
                 )}
               >
-                <button class={styles.logo} onClick={() => setOpen(false)}>
+                <button class={styles.logo} onClick={() => setOpen('open', 'false')}>
                   <span class={styles.tanstackLogo}>TANSTACK</span>
                   <span class={styles.solidQueryLogo}>Solid Query v5</span>
                 </button>
@@ -249,10 +255,10 @@ export const DevtoolsPanel: Component<DevtoolsPanelProps> = props => {
         </Show>
       </TransitionGroup>
       <TransitionGroup name="SQD-button">
-        <Show when={!open()}>
+        <Show when={openStore.open === 'false' || !openStore.open}>
           <div class={styles.devtoolsBtn}>
             <div></div>
-            <button onClick={() => setOpen(true)}>
+            <button onClick={() => setOpen('open', 'true')}>
               <img src="https://avatars.githubusercontent.com/u/72518640"></img>
             </button>
           </div>

@@ -4,6 +4,7 @@ specifiers:
   '@emotion/css': ^11.10.5
   '@solid-primitives/deep': ^0.0.102
   '@solid-primitives/keyed': ^1.1.4
+  '@solid-primitives/storage': ^1.3.9
   '@tanstack/match-sorter-utils': ^8.8.4
   '@tanstack/solid-query': ^5.0.0-alpha.15
   concurrently: ^7.6.0
@@ -25,6 +26,7 @@ dependencies:
   '@emotion/css': 11.10.6
   '@solid-primitives/deep': 0.0.102_solid-js@1.6.9
   '@solid-primitives/keyed': 1.1.10_solid-js@1.6.9
+  '@solid-primitives/storage': 1.3.9_solid-js@1.6.9
   '@tanstack/match-sorter-utils': 8.8.4
   solid-transition-group: 0.2.2_solid-js@1.6.9
   superjson: 1.12.2
@@ -924,6 +926,15 @@ packages:
 
   /@solid-primitives/refs/1.0.2_solid-js@1.6.9:
     resolution: {integrity: sha512-qnqQRdYbsENlVx86QCfftRKGZ/9zUJMGK9U85xDRymocEyeUXxdxgq0FeyGhvgg4A25spJVwHmuZUGY0aMBBLA==}
+    peerDependencies:
+      solid-js: ^1.6.12
+    dependencies:
+      '@solid-primitives/utils': 6.0.0_solid-js@1.6.9
+      solid-js: 1.6.9
+    dev: false
+
+  /@solid-primitives/storage/1.3.9_solid-js@1.6.9:
+    resolution: {integrity: sha512-ysJSIycmToQD8Hpt4jpIlh7U8EuYdpQwkamppng3g93E5f6RZVPCzYmRZ+ckRN2cNLFpAuTEqZx7OBRh3PBWFQ==}
     peerDependencies:
       solid-js: ^1.6.12
     dependencies:
