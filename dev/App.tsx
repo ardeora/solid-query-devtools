@@ -44,16 +44,16 @@ const App: Component = () => {
   //   // },
   // }));
 
-  for (let i = 0; i < 5; i++) {
+  for (let i = 0; i < 1; i++) {
     const query = createQuery(() => ({
-      queryKey: ['pokemon', i + 1],
+      queryKey: ['pokemon', 1],
       queryFn: async () => {
         await new Promise(resolve => setTimeout(resolve, 1000))
         return {
-          count: i + 1,
+          count: 1,
         }
       },
-      enabled: false,
+      refetchInterval: 2000,
     }))
   }
 
@@ -80,13 +80,15 @@ const App: Component = () => {
   const query2 = createQuery(() => ({
     queryKey: ['set'],
     queryFn: async () => {
+      await new Promise(resolve => setTimeout(resolve, 1000))
       const set = new Set()
       set.add('a')
       set.add('b')
       set.add('c')
       return set
     },
-    staleTime: 100000,
+    // staleTime: 10000,
+    // refetchInterval: 2000,
   }))
 
   const query3 = createQuery(() => ({
@@ -109,7 +111,7 @@ const App: Component = () => {
       // map.set("g", map2);
 
       // return map;
-      return new Promise(resolve => setTimeout(() => resolve('hello'), 1000000))
+      return new Promise(resolve => setTimeout(() => resolve('hello'), 100))
     },
   }))
 
