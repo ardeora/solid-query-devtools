@@ -44,7 +44,7 @@ const App: Component = () => {
 	//   // },
 	// }));
 
-	for (let i = 0; i < 1; i++) {
+	for (let i = 0; i < 100; i++) {
 		const query = createQuery(() => ({
 			queryKey: ["pokemon", 1],
 			queryFn: async () => {
@@ -57,6 +57,41 @@ const App: Component = () => {
 		}));
 	}
 
+	for (let i = 0; i < 40; i++) {
+		const query = createQuery(() => ({
+			queryKey: ["pokemon", 100 + i],
+			queryFn: async () => {
+				await new Promise((resolve) => setTimeout(resolve, 1000));
+				return {
+					count: 1 + i,
+				};
+			},
+		}));
+	}
+
+	for (let i = 0; i < 400; i++) {
+		const query = createQuery(() => ({
+			queryKey: ["pokemon", 2],
+			queryFn: async () => {
+				await new Promise((resolve) => setTimeout(resolve, 1000));
+				return {
+					count: 1,
+				};
+			},
+		}));
+	}
+
+	for (let i = 0; i < 1730; i++) {
+		const query = createQuery(() => ({
+			queryKey: ["pokemon", 3],
+			queryFn: async () => {
+				await new Promise((resolve) => setTimeout(resolve, 1000));
+				return {
+					count: 1,
+				};
+			},
+		}));
+	}
 	// const queries = createQueries(() => ({
 	//   queries: Array.from(Array(80).keys()).map((i) => ({
 	//     queryKey: ["pokemon", i + 1],

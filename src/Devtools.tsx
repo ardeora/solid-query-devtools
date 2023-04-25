@@ -50,6 +50,7 @@ import { loadFonts } from "./fonts";
 import { Key } from "@solid-primitives/keyed";
 import { deepTrack } from "@solid-primitives/deep";
 import { createLocalStorage } from "@solid-primitives/storage";
+import { SolidQueryDevtoolsProps } from "./SolidQueryDevtools";
 
 interface DevToolsErrorType {
 	/**
@@ -75,6 +76,18 @@ interface QueryStatusProps {
 const [selectedQueryHash, setSelectedQueryHash] = createSignal<string | null>(
 	null
 );
+
+const DevtoolsDev: Component<SolidQueryDevtoolsProps> = (props) => {
+	const client = createMemo(() => props.queryClient || useQueryClient());
+
+	return (
+		<DevtoolsQueryClientContext.Provider value={client()}>
+			<DevtoolsPanel />
+		</DevtoolsQueryClientContext.Provider>
+	);
+};
+
+export default DevtoolsDev;
 
 export const DevtoolsPanel: Component<DevtoolsPanelProps> = (props) => {
 	// loadFonts()

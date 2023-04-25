@@ -1,20 +1,12 @@
 import { QueryClient, useQueryClient } from "@tanstack/solid-query";
-import { Component, createMemo } from "solid-js";
+import { Component, createMemo, createSignal, DEV } from "solid-js";
+import { isServer } from "solid-js/web";
 import { DevtoolsQueryClientContext } from "./Context";
 import { DevtoolsPanel } from "./Devtools";
+import clientOnly from "./clientOnly";
 
-interface SolidQueryDevtoolsProps {
+export interface SolidQueryDevtoolsProps {
 	queryClient?: QueryClient;
 }
 
-export const SolidQueryDevtools: Component<SolidQueryDevtoolsProps> = (
-	props
-) => {
-	const client = createMemo(() => props.queryClient || useQueryClient());
-
-	return (
-		<DevtoolsQueryClientContext.Provider value={client()}>
-			<DevtoolsPanel />
-		</DevtoolsQueryClientContext.Provider>
-	);
-};
+export const SolidQueryDevtools = clientOnly(() => import("./Devtools"));
